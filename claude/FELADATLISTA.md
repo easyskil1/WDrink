@@ -224,11 +224,11 @@
 
 ## 8. MODUL – Selejtezés (önálló felület is)
 
-- [ ] Önálló selejtezési felület (nem csak a fenti modulokba ágyazott gomb) – vonalkód/QR alapján bármely készleten lévő tétel selejtezhető
-- [ ] Kötelező indok mező: `sérült`/`lejárt`/`hiány`/`egyéb`
-- [ ] Opcionális fotó/dokumentáció csatolása
-- [ ] Mentéskor: globális + helyhez kötött készlet csökken, `movement_log` bejegyzés `tipus = 'selejtezés'`
-- [ ] Selejt riport: időszak/ok/termék szerinti bontás (a dashboard része)
+- [x] Önálló selejtezési felület (nem csak a fenti modulokba ágyazott gomb) – vonalkód/QR alapján bármely készleten lévő tétel selejtezhető _(név-keresés; QR/vonalkód-scan a Scanner elkészültekor)_
+- [x] Kötelező indok mező: `sérült`/`lejárt`/`hiány`/`egyéb`
+- [x] Opcionális fotó/dokumentáció csatolása _(selejt-notes Storage bucket)_
+- [x] Mentéskor: globális + helyhez kötött készlet csökken, `movement_log` bejegyzés `tipus = 'selejtezés'` _(atomi RPC)_
+- [ ] Selejt riport: időszak/ok/termék szerinti bontás (a dashboard része) _(Modul 10 dashboard)_
 
 ---
 
