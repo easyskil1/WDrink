@@ -181,18 +181,18 @@
 ## 5. MODUL – Bevételezés → Betárolás
 
 ### 5.1 Bevételezés
-- [ ] Új bevételezés indítása: beszállító kiválasztása, dátum
-- [ ] Tételek felvitele: vonalkód beolvasás (Scanner) → automatikus termék/kiszerelés felismerés → mennyiség megadása (a kiszerelés egységében, pl. "3 karton") → automatikus átváltás alapegységre
-- [ ] LOT szám és lejárati dátum megadása tételenként
-- [ ] Szállítólevél **fotó** feltöltése (Supabase Storage) → `delivery_notes` rekord létrehozása
-- [ ] Mentéskor: `stock_items` létrehozása `statusz = 'puffer'`, `location_id = NULL`, + `movement_log` bejegyzés `tipus = 'bevételezés'`
-- [ ] **Selejt opció** bevételezés közben: ha egy tétel sérülten érkezik, "Selejt" gombbal `movement_log` bejegyzés `tipus = 'selejtezés'`, `selejt_forras_lepes = 'bevételezés'`, a tétel nem kerül be jó készletként
+- [x] Új bevételezés indítása: beszállító kiválasztása, dátum
+- [x] Tételek felvitele: vonalkód beolvasás (Scanner) → automatikus termék/kiszerelés felismerés → mennyiség megadása (a kiszerelés egységében, pl. "3 karton") → automatikus átváltás alapegységre _(kézi vonalkód/dropdown + átváltás-megerősítés; Scanner bekötés később)_
+- [x] LOT szám és lejárati dátum megadása tételenként
+- [x] Szállítólevél **fotó** feltöltése (Supabase Storage) → `delivery_notes` rekord létrehozása
+- [x] Mentéskor: `stock_items` létrehozása `statusz = 'puffer'`, `location_id = NULL`, + `movement_log` bejegyzés `tipus = 'bevételezés'` _(atomi RPC)_
+- [x] **Selejt opció** bevételezés közben: ha egy tétel sérülten érkezik, "Selejt" gombbal `movement_log` bejegyzés `tipus = 'selejtezés'`, `selejt_forras_lepes = 'bevételezés'`, a tétel nem kerül be jó készletként
 
 ### 5.2 Betárolás
-- [ ] Pufferben lévő (`statusz = 'puffer'`) tételek listája
-- [ ] Tétel kiválasztása → cél tárhely QR beolvasása (Scanner) → mennyiség megadása (részleges betárolás támogatása: egy tétel több helyre is szétosztható)
-- [ ] Mentéskor: `stock_items.location_id` és `statusz = 'betárolva'` frissítés (vagy megosztás esetén új `stock_items` sor), + `movement_log` bejegyzés `tipus = 'betárolás'`
-- [ ] **Selejt opció** betárolás közben, `selejt_forras_lepes = 'betárolás'`
+- [x] Pufferben lévő (`statusz = 'puffer'`) tételek listája
+- [x] Tétel kiválasztása → cél tárhely QR beolvasása (Scanner) → mennyiség megadása (részleges betárolás támogatása: egy tétel több helyre is szétosztható) _(tárhely dropdown; QR-scan később)_
+- [x] Mentéskor: `stock_items.location_id` és `statusz = 'betárolva'` frissítés (vagy megosztás esetén új `stock_items` sor), + `movement_log` bejegyzés `tipus = 'betárolás'` _(atomi RPC)_
+- [x] **Selejt opció** betárolás közben, `selejt_forras_lepes = 'betárolás'`
 
 ---
 
