@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser'
 
 /**
- * Közös vonalkód/QR olvasó. Kamerát nyit, és az első sikeres beolvasáskor
- * meghívja az onResult-ot a dekódolt szöveggel. QR + EAN/Code128 stb.
- *
- * Megjegyzés: a kamera HTTPS-t vagy localhost-ot igényel.
+ * Közös vonalkód/QR olvasó. Két mód:
+ *  - "live": folyamatos kamera-stream (getUserMedia) – asztali gépen és
+ *    Androidon a legkényelmesebb.
+ *  - "photo": natív fényképezés (<input capture>) + a képből dekódolás –
+ *    iPhone-on (ahol a getUserMedia gyakran nem érhető el böngészőben) ez
+ *    működik minden esetben. Ha az élő kamera nem indul, ide esünk vissza.
  */
 export function Scanner({
   onResult,
@@ -18,36 +20,29 @@ export function Scanner({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsRef = useRef<IScannerControls | null>(null)
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null)
+  const [mode, setMode] = useState<'live' | 'photo'>('live')
   const [error, setError] = useState<string | null>(null)
+  const [decoding, setDecoding] = useState(false)
 
+  if (!readerRef.current) readerRef.current = new BrowserMultiFormatReader()
+
+  // Élő kamera indítása (csak live módban).
   useEffect(() => {
-    let cancelled = false
+    if (mode !== 'live') return
 
-    // A kamera (getUserMedia) csak biztonságos kontextusban érhető el:
-    // HTTPS vagy localhost. HTTP-n (pl. telefonról a gép LAN IP-jén) a
-    // navigator.mediaDevices undefined – adjunk érthető üzenetet nyers hiba
-    // helyett.
+    // Ha nincs getUserMedia (pl. iPhone böngésző, http kapcsolat), fotó-módra
+    // váltunk – ott natív kamerával lehet beolvasni.
     if (
       typeof navigator === 'undefined' ||
       !navigator.mediaDevices?.getUserMedia
     ) {
-      const ua = navigator.userAgent || ''
-      const isIOS = /iPhone|iPad|iPod/.test(ua)
-      // iOS-en minden böngésző WebKit; a getUserMedia gyakran csak Safariban
-      // érhető el. A Chrome for iOS UA-ban 'CriOS', a Firefox 'FxiOS'.
-      const isIOSNonSafari = isIOS && /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua)
-
-      setError(
-        isIOSNonSafari
-          ? 'iPhone-on a kamerás beolvasás Safariban működik. Nyisd meg ezt az oldalt Safariban (ne Chrome/Firefox-ban), és engedélyezd a kamerát.'
-          : window.isSecureContext === false
-            ? 'A kamera csak biztonságos kapcsolaton (HTTPS) vagy localhoston érhető el. Nyisd meg az oldalt https-en (a Vercel-linken), ne a gép IP-címén http-vel.'
-            : 'Ez a böngésző nem támogatja a kamerát, vagy le van tiltva. Próbáld Safariban/Chrome-ban, és engedélyezd a kamerát.'
-      )
+      setMode('photo')
       return
     }
 
-    const reader = new BrowserMultiFormatReader()
+    let cancelled = false
+    const reader = readerRef.current!
 
     async function start() {
       try {
@@ -63,12 +58,9 @@ export function Scanner({
         )
         if (cancelled) controls.stop()
         else controlsRef.current = controls
-      } catch (e) {
-        setError(
-          e instanceof Error
-            ? 'Kamera hiba: ' + e.message
-            : 'A kamera nem érhető el.'
-        )
+      } catch {
+        // Az élő kamera nem indult – fotó-móddal még mehet.
+        if (!cancelled) setMode('photo')
       }
     }
     start()
@@ -77,12 +69,35 @@ export function Scanner({
       cancelled = true
       controlsRef.current?.stop()
     }
-  }, [onResult])
+  }, [mode, onResult])
+
+  // Fotóból dekódolás (photo mód).
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // ugyanaz a fájl újra kiválasztható legyen
+    if (!file) return
+    setDecoding(true)
+    setError(null)
+    const url = URL.createObjectURL(file)
+    try {
+      const result = await readerRef.current!.decodeFromImageUrl(url)
+      onResult(result.getText())
+    } catch {
+      setError(
+        'Nem sikerült vonalkódot felismerni a képen. Próbáld újra: közelebbről, éles, jól megvilágított képpel.'
+      )
+    } finally {
+      URL.revokeObjectURL(url)
+      setDecoding(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90">
       <div className="flex items-center justify-between px-4 py-3 text-white">
-        <span className="text-sm font-medium">Beolvasás…</span>
+        <span className="text-sm font-medium">
+          {mode === 'live' ? 'Beolvasás…' : 'Beolvasás fotóval'}
+        </span>
         <button
           type="button"
           onClick={onClose}
@@ -92,25 +107,54 @@ export function Scanner({
         </button>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-4">
-        {error ? (
-          <p className="max-w-xs text-center text-sm text-red-300">{error}</p>
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
+        {mode === 'live' ? (
+          <>
+            <div className="relative w-full max-w-md">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video
+                ref={videoRef}
+                className="w-full rounded-lg bg-black"
+                playsInline
+              />
+              <div className="pointer-events-none absolute inset-0 m-8 rounded-lg border-2 border-white/70" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setMode('photo')}
+              className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+            >
+              Nem indul a kamera? Olvasás fotóval
+            </button>
+          </>
         ) : (
-          <div className="relative w-full max-w-md">
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video
-              ref={videoRef}
-              className="w-full rounded-lg bg-black"
-              playsInline
-            />
-            <div className="pointer-events-none absolute inset-0 m-8 rounded-lg border-2 border-white/70" />
+          <div className="flex w-full max-w-md flex-col items-center gap-4 text-center">
+            {error && (
+              <p className="text-sm text-red-300">{error}</p>
+            )}
+            <p className="text-sm text-white/70">
+              Készíts éles fotót a vonalkódról vagy QR kódról.
+            </p>
+            <label className="cursor-pointer rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100">
+              {decoding ? 'Feldolgozás…' : 'Fénykép készítése'}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                disabled={decoding}
+                onChange={handleFile}
+              />
+            </label>
           </div>
         )}
       </div>
 
-      <p className="px-4 pb-6 text-center text-xs text-white/60">
-        Irányítsd a kamerát a vonalkódra vagy QR kódra.
-      </p>
+      {mode === 'live' && (
+        <p className="px-4 pb-6 text-center text-xs text-white/60">
+          Irányítsd a kamerát a vonalkódra vagy QR kódra.
+        </p>
+      )}
     </div>
   )
 }
