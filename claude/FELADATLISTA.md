@@ -1,0 +1,282 @@
+# Ital Nagykereskedés – Logisztikai Admin Rendszer
+## Fejlesztési feladatlista (Claude Code számára)
+
+> Cél: első fázisban egy védett admin felület, ami a raktári logisztikát kezeli
+> (helyek, termékek, készletmozgások, dashboard). A webshop később épül rá,
+> ugyanarra az adatbázisra és repóra.
+
+---
+
+## 0. Tech stack és alapelvek
+
+- **Frontend/Backend**: Next.js (App Router), TypeScript
+- **Adatbázis / Auth / Storage**: Supabase (Postgres, Auth, RLS, Storage a fotókhoz/PDF-ekhez)
+- **Deploy**: később Vercel, aldomain routing (pl. `admin.pelda.hu`)
+- **Egy repo**, route group-okkal elválasztva: `app/(admin)/...` és később `app/(shop)/...`
+- **Nincs nyilvános regisztráció** – felhasználót csak a fő admin hoz létre (Supabase service role key, szerver oldali API route)
+- Minden készletmozgás egységes `movement_log` táblába kerül, típus szerint szűrve
+- Minden termék **több kiszerelési szinttel** rendelkezhet (palack/karton/raklap), mindegyiknek saját vonalkódja, mennyisége, ára
+- **LOT/lejárat szintű** készletnyilvántartás (FEFO elv)
+- Tárhelyek **QR kóddal**, termékek **EAN vonalkóddal** azonosítva
+- Jövedéki és ÁFA megfelelőségi mezőket a séma elejétől kezelve be kell tervezni (ld. 9. szakasz)
+
+---
+
+## 1. FÁZIS – Alapinfrastruktúra
+
+### 1.1 Projekt inicializálás
+- [ ] Next.js (App Router, TypeScript) projekt létrehozása
+- [ ] Supabase projekt létrehozása, Supabase CLI telepítése és inicializálása (`supabase init`)
+- [ ] `.env.example` és `.env.local` (utóbbi git-ignore-olva) – `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- [ ] `supabase/migrations` mappa – minden séma-változás migrációként kerüljön be, ne csak Supabase UI-ban
+
+### 1.2 Auth és middleware
+- [ ] Supabase Auth bekötése (email + jelszó, nincs nyilvános regisztráció)
+- [ ] `profiles` tábla `role` mezővel (lásd 2.7 tábla), kapcsolva `auth.users`-hez
+- [ ] `middleware.ts`: aldomain/route-alapú védelem – ha a user nincs bejelentkezve vagy nem megfelelő role-lal rendelkezik, redirect `/login`-ra
+- [ ] Admin API route user meghívásához/létrehozásához (service role key, szerver oldalon, SOHA klienshez ne kerüljön)
+
+### 1.3 UI váz
+- [ ] Admin layout (oldalsáv navigáció a modulokhoz, header, user menü)
+- [ ] Közös `<Scanner />` komponens (QR + EAN/Code128 olvasás kamerával, pl. `html5-qrcode` vagy `@zxing/library`)
+- [ ] Közös form/tábla komponensek (lista, szűrés, pagináció) – ezt minden modul újrahasználja
+
+---
+
+## 2. Adatbázis séma (Supabase / Postgres)
+
+> Az alábbi táblák migrációként kerüljenek létrehozásra, RLS-sel védve.
+> Minden táblához `created_at`, `updated_at`, és ahol releváns, `created_by` mező is kerüljön.
+
+### 2.1 `locations` (raktári helyek)
+| mező | típus | megjegyzés |
+|---|---|---|
+| id | uuid PK | |
+| sor | text | |
+| polc | text | |
+| polcsor | text | |
+| tarhely | text | |
+| teljes_kod | text UNIQUE | pl. `A-01-02-03`, generált |
+| qr_kod | text UNIQUE | QR-hez kódolt azonosító |
+| tipus | enum | `pick`/`raktár`/`puffer`/`karantén` |
+| aktiv | boolean | |
+
+### 2.2 `products` (alaptermék)
+| mező | típus | megjegyzés |
+|---|---|---|
+| id | uuid PK | |
+| nev | text | |
+| kategoria | text | |
+| gyarto_beszallito_id | uuid FK → `suppliers` | |
+| leiras | text | |
+| alkoholtartalom | numeric | % |
+| jövedéki | boolean | |
+| jövedéki_termékkategória | enum | sör/bor/köztes/alkoholtermék |
+| kn_kod | text | vámtarifaszám, jövedéki riporthoz |
+| fajtakod | text | NAV fajtakód |
+| min_keszlet | integer | riasztáshoz |
+| aktiv | boolean | |
+
+### 2.3 `product_units` (kiszerelési szintek)
+| mező | típus | megjegyzés |
+|---|---|---|
+| id | uuid PK | |
+| product_id | uuid FK | |
+| kiszereles | enum | `palack`/`karton`/`raklap` |
+| vonalkod | text UNIQUE | EAN |
+| mennyiseg_alapegysegben | integer | pl. karton = 12 palack |
+| netto_ar | numeric | |
+| brutto_ar | numeric | |
+| afa_kulcs | numeric | alapból 27 |
+| beszerzesi_ar | numeric | |
+| betetdij_tipus | enum | `nincs`/`kötelező_eldobható`/`kötelező_újrahasználható`/`önkéntes` |
+| betetdij_osszeg | numeric | |
+
+### 2.4 `suppliers` (beszállítók)
+| mező | típus |
+|---|---|
+| id | uuid PK |
+| nev | text |
+| adoszam | text |
+| cim | text |
+| kapcsolattarto | text |
+
+### 2.5 `stock_items` (LOT/tétel szintű készlet)
+| mező | típus | megjegyzés |
+|---|---|---|
+| id | uuid PK | |
+| product_id | uuid FK | |
+| product_unit_id | uuid FK | melyik kiszerelésben van nyilvántartva |
+| lot_szam | text | |
+| lejarat_datum | date | |
+| location_id | uuid FK nullable | NULL = pufferben, nincs betárolva |
+| mennyiseg_alapegysegben | integer | mindig alapegységben (palack) |
+| statusz | enum | `puffer`/`betárolva`/`kigyűjtve`/`kiadva`/`selejtezve` |
+
+### 2.6 `movement_log` (minden készletmozgás egységesen)
+| mező | típus | megjegyzés |
+|---|---|---|
+| id | uuid PK | |
+| tipus | enum | `bevételezés`/`betárolás`/`kigyűjtés`/`kiadás`/`átrárolás`/`selejtezés` |
+| stock_item_id | uuid FK | |
+| mennyiseg | integer | alapegységben |
+| forras_location_id | uuid FK nullable | |
+| cel_location_id | uuid FK nullable | |
+| selejt_ok | enum nullable | sérült/lejárt/hiány/egyéb – csak selejtezésnél |
+| selejt_forras_lepes | enum nullable | bevételezés/betárolás/kigyűjtés/kiadás – honnan történt a selejtezés |
+| delivery_note_id | uuid FK nullable | |
+| user_id | uuid FK | ki végezte |
+| megjegyzes | text | |
+| created_at | timestamptz | |
+
+### 2.7 `profiles` (felhasználók, jogosultság)
+| mező | típus |
+|---|---|
+| id | uuid PK, = auth.users.id |
+| nev | text |
+| role | enum: `admin`/`staff` |
+| aktiv | boolean |
+
+### 2.8 `delivery_notes` (szállítólevelek)
+| mező | típus | megjegyzés |
+|---|---|---|
+| id | uuid PK | |
+| irany | enum | `bevételezés`/`kiadás` |
+| supplier_id | uuid FK nullable | bevételezésnél |
+| vevo_nev | text nullable | kiadásnál |
+| datum | date | |
+| fenykep_url | text nullable | bevételezésnél, Supabase Storage |
+| pdf_url | text nullable | kiadásnál generált PDF |
+| sorszam | text UNIQUE | szekvenciális azonosító |
+
+### 2.9 RLS szabályok
+- [ ] Minden fenti táblán RLS engedélyezve
+- [ ] Policy: csak bejelentkezett, `staff` vagy `admin` role-lal rendelkező user érhet el bármit
+- [ ] `profiles` tábla módosítása (role kiosztás) csak `admin` role-nak engedélyezett
+- [ ] Webshop (későbbi) publikus policy-k külön, csak a `products`/`product_units` publikus mezőire
+
+---
+
+## 3. MODUL – Raktári helyek + címkenyomtatás
+
+- [ ] CRUD felület: sor/polc/polcsor/tárhely létrehozása, szerkesztése
+- [ ] Automatikus `teljes_kod` generálás a négy komponensből
+- [ ] QR kód generálás minden tárhelyhez (pl. `qrcode` npm csomag)
+- [ ] Címke nyomtatási nézet (nyomtatóbarát HTML/PDF, több címke egy lapon, A4 vagy címkenyomtató méretre)
+- [ ] Lista/szűrés nézet (sor szerint, típus szerint, aktív/inaktív)
+
+---
+
+## 4. MODUL – Termékek
+
+- [ ] Termék CRUD (`products` tábla mezői alapján)
+- [ ] Kiszerelési szintek kezelése termékenként (`product_units`) – dinamikusan hozzáadható/törölhető sorok (palack/karton/raklap)
+- [ ] Minden kiszereléshez: vonalkód (kézi beviteli mező VAGY kamerás beolvasás a `<Scanner />`-rel), mennyiség alapegységben, árak, betétdíj
+- [ ] Beszállító kiválasztása/kezelése (`suppliers` CRUD)
+- [ ] Validáció: vonalkód egyedi legyen az összes `product_units` sor között
+- [ ] Termék lista: keresés név/vonalkód szerint, szűrés kategória/beszállító szerint
+
+---
+
+## 5. MODUL – Bevételezés → Betárolás
+
+### 5.1 Bevételezés
+- [ ] Új bevételezés indítása: beszállító kiválasztása, dátum
+- [ ] Tételek felvitele: vonalkód beolvasás (Scanner) → automatikus termék/kiszerelés felismerés → mennyiség megadása (a kiszerelés egységében, pl. "3 karton") → automatikus átváltás alapegységre
+- [ ] LOT szám és lejárati dátum megadása tételenként
+- [ ] Szállítólevél **fotó** feltöltése (Supabase Storage) → `delivery_notes` rekord létrehozása
+- [ ] Mentéskor: `stock_items` létrehozása `statusz = 'puffer'`, `location_id = NULL`, + `movement_log` bejegyzés `tipus = 'bevételezés'`
+- [ ] **Selejt opció** bevételezés közben: ha egy tétel sérülten érkezik, "Selejt" gombbal `movement_log` bejegyzés `tipus = 'selejtezés'`, `selejt_forras_lepes = 'bevételezés'`, a tétel nem kerül be jó készletként
+
+### 5.2 Betárolás
+- [ ] Pufferben lévő (`statusz = 'puffer'`) tételek listája
+- [ ] Tétel kiválasztása → cél tárhely QR beolvasása (Scanner) → mennyiség megadása (részleges betárolás támogatása: egy tétel több helyre is szétosztható)
+- [ ] Mentéskor: `stock_items.location_id` és `statusz = 'betárolva'` frissítés (vagy megosztás esetén új `stock_items` sor), + `movement_log` bejegyzés `tipus = 'betárolás'`
+- [ ] **Selejt opció** betárolás közben, `selejt_forras_lepes = 'betárolás'`
+
+---
+
+## 6. MODUL – Kigyűjtés → Kiadás
+
+### 6.1 Kigyűjtés
+- [ ] Kiadandó tételek listája (rendelés/igény alapján, vagy szabad kigyűjtés – döntés szükséges, ld. nyitott kérdések)
+- [ ] FEFO logika: a rendszer a legkorábbi lejáratú, betárolt tételt/helyet ajánlja fel elsőként
+- [ ] Tárhely QR + termék vonalkód beolvasás megerősítéshez
+- [ ] Mentéskor: `stock_items.statusz = 'kigyűjtve'`, helyhez kötött készlet csökken, + `movement_log` bejegyzés `tipus = 'kigyűjtés'`
+- [ ] **Selejt opció**, `selejt_forras_lepes = 'kigyűjtés'`
+
+### 6.2 Kiadás
+- [ ] Kigyűjtött tételek összesítése egy kiadási bizonylatba
+- [ ] Vevő adatok megadása
+- [ ] Szállítólevél **PDF generálás és nyomtatás** (sorszámozott, a Jöt. Vhr. 36. § szerinti kötelező tartalommal: kiszállító adatai + jövedéki engedélyszám, KN-kód, mennyiség, alkoholtartalom, vevő adatai)
+- [ ] Mentéskor: `stock_items.statusz = 'kiadva'`, globális készlet csökken, + `movement_log` bejegyzés `tipus = 'kiadás'`, `delivery_notes` rekord PDF-fel
+- [ ] **Selejt opció**, `selejt_forras_lepes = 'kiadás'`
+
+---
+
+## 7. MODUL – Átrárolás
+
+- [ ] Forrás tárhely QR beolvasás → termék/tétel kiválasztás → cél tárhely QR beolvasás → mennyiség
+- [ ] Mentéskor: `stock_items.location_id` frissítés (vagy megosztás), + `movement_log` bejegyzés `tipus = 'átrárolás'`, forrás és cél hely rögzítve
+- [ ] Globális készletet nem érinti
+
+---
+
+## 8. MODUL – Selejtezés (önálló felület is)
+
+- [ ] Önálló selejtezési felület (nem csak a fenti modulokba ágyazott gomb) – vonalkód/QR alapján bármely készleten lévő tétel selejtezhető
+- [ ] Kötelező indok mező: `sérült`/`lejárt`/`hiány`/`egyéb`
+- [ ] Opcionális fotó/dokumentáció csatolása
+- [ ] Mentéskor: globális + helyhez kötött készlet csökken, `movement_log` bejegyzés `tipus = 'selejtezés'`
+- [ ] Selejt riport: időszak/ok/termék szerinti bontás (a dashboard része)
+
+---
+
+## 9. MODUL – Felhasználók kezelése
+
+- [ ] Lista: aktív/inaktív userek, role
+- [ ] Új user meghívása (email megadása, szerver oldali API route service role key-jel → Supabase Auth invite)
+- [ ] Role kiosztás/módosítás (`staff`/`admin`)
+- [ ] Deaktiválás (nem törlés)
+- [ ] Csak `admin` role éri el ezt a modult
+
+---
+
+## 10. MODUL – Dashboard
+
+- [ ] Bevétel/eladás időszak szerint (nap/hét/hónap), grafikon
+- [ ] Top termékek eladás szerint
+- [ ] Készletérték (globális + helyenkénti bontás)
+- [ ] Alacsony készlet riasztás (`min_keszlet` alapján)
+- [ ] Selejt/veszteség kimutatás – **külön sor**, nem eladásként számolva, ok szerinti bontásban
+- [ ] Puffer/kigyűjtve állapotú tételek áttekintése (mennyi van "félkész" állapotban)
+
+---
+
+## 11. Megfelelőségi / jövedéki kiegészítések (később, de séma szinten előkészítve)
+
+- [ ] Havi NAV_J09 adatszolgáltatáshoz szükséges export (beszerzés, készletcsökkenés, napi zárókészlet telephelyenként) – riport generálás `movement_log`-ból
+- [ ] Szállítólevél PDF sablon a Jöt. Vhr. 36. § kötelező tartalmi elemeivel (ld. korábbi kutatási riport)
+- [ ] EKAER szám mező előkészítése a `delivery_notes`/`movement_log` táblán (kitöltése egyelőre manuális/opcionális)
+- [ ] Cégadatok (jövedéki engedélyszám, FELIR azonosító) egy `company_settings` táblában, számlákon/szállítóleveleken felhasználva
+
+---
+
+## Nyitott kérdések (implementáció előtt tisztázandó)
+
+1. **Kigyűjtés**: mindig konkrét rendeléshez/kiadási tételhez kötött legyen, vagy lehet "szabad" kigyűjtés is, amit utólag rendelnek egy kiadáshoz?
+2. **Részleges mozgás**: egy bevételezési/betárolási tétel szétosztható-e több tárhelyre/több LOT-ra egyszerre, vagy mindig egyben mozog?
+3. Karton/raklap vonalkód beolvasásakor legyen-e megerősítő kérdés ("biztosan X karton, azaz Y palack?") a hibás mennyiség elkerülésére?
+
+---
+
+## Javasolt build sorrend
+
+1. Fázis 1 (infrastruktúra: Next.js + Supabase + Auth + middleware)
+2. Fázis 2 (teljes DB séma migrációként, RLS)
+3. Modul 3 (raktári helyek + QR címke) – ez a legfüggetlenebb, jó kiindulás
+4. Modul 4 (termékek + kiszerelések)
+5. Modul 5–6 (bevételezés/betárolás, kigyűjtés/kiadás) – ezek épülnek a 3–4 modulra
+6. Modul 7–8 (átrárolás, selejtezés)
+7. Modul 9 (felhasználók)
+8. Modul 10 (dashboard) – utolsó, mert az összes korábbi adatra épül
