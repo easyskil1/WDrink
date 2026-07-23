@@ -216,9 +216,9 @@
 
 ## 7. MODUL – Átrárolás
 
-- [ ] Forrás tárhely QR beolvasás → termék/tétel kiválasztás → cél tárhely QR beolvasás → mennyiség
-- [ ] Mentéskor: `stock_items.location_id` frissítés (vagy megosztás), + `movement_log` bejegyzés `tipus = 'átrárolás'`, forrás és cél hely rögzítve
-- [ ] Globális készletet nem érinti
+- [x] Forrás tárhely QR beolvasás → termék/tétel kiválasztás → cél tárhely QR beolvasás → mennyiség _(hely/tétel dropdown; QR-scan a Scanner elkészültekor)_
+- [x] Mentéskor: `stock_items.location_id` frissítés (vagy megosztás), + `movement_log` bejegyzés `tipus = 'átrárolás'`, forrás és cél hely rögzítve _(atomi RPC)_
+- [x] Globális készletet nem érinti
 
 ---
 
