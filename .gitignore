@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# perf mérés (lokális, ne commitold)
+perf-tmp.mjs
+pw-state.json
