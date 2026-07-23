@@ -24,3 +24,70 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ---- Raktári hely címkék (QR) ---- */
+.labels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(45mm, 1fr));
+  gap: 4mm;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  padding: 3mm;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #0f172a;
+  break-inside: avoid;
+}
+
+.label-qr {
+  width: 22mm;
+  height: 22mm;
+  flex-shrink: 0;
+}
+.label-qr svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.label-text {
+  min-width: 0;
+}
+.label-code {
+  font-family: var(--font-mono), monospace;
+  font-weight: 700;
+  font-size: 12pt;
+  line-height: 1.2;
+  word-break: break-all;
+}
+.label-tipus {
+  font-size: 8pt;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 1mm;
+}
+
+/* ---- Nyomtatás ---- */
+@media print {
+  /* Admin keret elrejtése (aside/header print:hidden a layoutban) */
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  main {
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  .label {
+    border-color: #000;
+  }
+  @page {
+    margin: 8mm;
+  }
+}

@@ -25,19 +25,19 @@
 ## 1. FÁZIS – Alapinfrastruktúra
 
 ### 1.1 Projekt inicializálás
-- [ ] Next.js (App Router, TypeScript) projekt létrehozása
-- [ ] Supabase projekt létrehozása, Supabase CLI telepítése és inicializálása (`supabase init`)
-- [ ] `.env.example` és `.env.local` (utóbbi git-ignore-olva) – `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- [ ] `supabase/migrations` mappa – minden séma-változás migrációként kerüljön be, ne csak Supabase UI-ban
+- [x] Next.js (App Router, TypeScript) projekt létrehozása
+- [x] Supabase projekt létrehozása, Supabase CLI telepítése és inicializálása (`supabase init`)
+- [x] `.env.example` és `.env.local` (utóbbi git-ignore-olva) – `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- [x] `supabase/migrations` mappa – minden séma-változás migrációként kerüljön be, ne csak Supabase UI-ban
 
 ### 1.2 Auth és middleware
-- [ ] Supabase Auth bekötése (email + jelszó, nincs nyilvános regisztráció)
-- [ ] `profiles` tábla `role` mezővel (lásd 2.7 tábla), kapcsolva `auth.users`-hez
-- [ ] `middleware.ts`: aldomain/route-alapú védelem – ha a user nincs bejelentkezve vagy nem megfelelő role-lal rendelkezik, redirect `/login`-ra
-- [ ] Admin API route user meghívásához/létrehozásához (service role key, szerver oldalon, SOHA klienshez ne kerüljön)
+- [x] Supabase Auth bekötése (email + jelszó, nincs nyilvános regisztráció)
+- [x] `profiles` tábla `role` mezővel (lásd 2.7 tábla), kapcsolva `auth.users`-hez
+- [x] `middleware.ts`: aldomain/route-alapú védelem – ha a user nincs bejelentkezve vagy nem megfelelő role-lal rendelkezik, redirect `/login`-ra _(Next 16: `proxy.ts`)_
+- [ ] Admin API route user meghívásához/létrehozásához (service role key, szerver oldalon, SOHA klienshez ne kerüljön) _(admin kliens helper kész, a route a 9. modulban)_
 
 ### 1.3 UI váz
-- [ ] Admin layout (oldalsáv navigáció a modulokhoz, header, user menü)
+- [x] Admin layout (oldalsáv navigáció a modulokhoz, header, user menü)
 - [ ] Közös `<Scanner />` komponens (QR + EAN/Code128 olvasás kamerával, pl. `html5-qrcode` vagy `@zxing/library`)
 - [ ] Közös form/tábla komponensek (lista, szűrés, pagináció) – ezt minden modul újrahasználja
 
@@ -150,20 +150,20 @@
 | sorszam | text UNIQUE | szekvenciális azonosító |
 
 ### 2.9 RLS szabályok
-- [ ] Minden fenti táblán RLS engedélyezve
-- [ ] Policy: csak bejelentkezett, `staff` vagy `admin` role-lal rendelkező user érhet el bármit
-- [ ] `profiles` tábla módosítása (role kiosztás) csak `admin` role-nak engedélyezett
+- [x] Minden fenti táblán RLS engedélyezve
+- [x] Policy: csak bejelentkezett, `staff` vagy `admin` role-lal rendelkező user érhet el bármit
+- [x] `profiles` tábla módosítása (role kiosztás) csak `admin` role-nak engedélyezett
 - [ ] Webshop (későbbi) publikus policy-k külön, csak a `products`/`product_units` publikus mezőire
 
 ---
 
 ## 3. MODUL – Raktári helyek + címkenyomtatás
 
-- [ ] CRUD felület: sor/polc/polcsor/tárhely létrehozása, szerkesztése
-- [ ] Automatikus `teljes_kod` generálás a négy komponensből
-- [ ] QR kód generálás minden tárhelyhez (pl. `qrcode` npm csomag)
-- [ ] Címke nyomtatási nézet (nyomtatóbarát HTML/PDF, több címke egy lapon, A4 vagy címkenyomtató méretre)
-- [ ] Lista/szűrés nézet (sor szerint, típus szerint, aktív/inaktív)
+- [x] CRUD felület: sor/polc/polcsor/tárhely létrehozása, szerkesztése _(törlés helyett deaktiválás)_
+- [x] Automatikus `teljes_kod` generálás a négy komponensből _(DB generated column + élő előnézet)_
+- [x] QR kód generálás minden tárhelyhez (pl. `qrcode` npm csomag)
+- [x] Címke nyomtatási nézet (nyomtatóbarát HTML/PDF, több címke egy lapon, A4 vagy címkenyomtató méretre)
+- [x] Lista/szűrés nézet (sor szerint, típus szerint, aktív/inaktív)
 
 ---
 

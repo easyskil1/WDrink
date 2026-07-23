@@ -21,11 +21,16 @@ A séma a `supabase/migrations/` mappában van (source of truth). Két mód:
 
 ### A) Supabase CLI (ajánlott)
 
+A hálózat IPv6-ot nem támogat, ezért a direkt kapcsolat helyett az **IPv4
+transaction pooler**-t használjuk (`--db-url`):
+
 ```bash
-npx supabase login                 # böngészős bejelentkezés
-npx supabase link --project-ref qjpsvylskodxzoqklwsg
-npx supabase db push               # migrációk feltöltése a távoli DB-re
+npx supabase db push --db-url \
+  "postgresql://postgres.qjpsvylskodxzoqklwsg:[DB_JELSZO]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres"
 ```
+
+Új migráció felvitele: tegyél új `.sql`-t a `supabase/migrations/`-ba, majd
+futtasd újra a fenti `db push`-t. (A helyi Docker-figyelmeztetés ártalmatlan.)
 
 ### B) SQL Editor (gyors)
 

@@ -12,7 +12,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-full flex-1">
-      <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white md:block">
+      <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white md:block print:hidden">
         <div className="border-b border-slate-200 px-5 py-4">
           <p className="text-sm font-semibold text-slate-900">
             Drink World Győr
@@ -23,7 +23,7 @@ export default async function AdminLayout({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 print:hidden">
           <div className="text-sm text-slate-500 md:hidden">
             Drink World Győr
           </div>
