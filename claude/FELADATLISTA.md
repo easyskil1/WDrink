@@ -34,7 +34,7 @@
 - [x] Supabase Auth bekötése (email + jelszó, nincs nyilvános regisztráció)
 - [x] `profiles` tábla `role` mezővel (lásd 2.7 tábla), kapcsolva `auth.users`-hez
 - [x] `middleware.ts`: aldomain/route-alapú védelem – ha a user nincs bejelentkezve vagy nem megfelelő role-lal rendelkezik, redirect `/login`-ra _(Next 16: `proxy.ts`)_
-- [ ] Admin API route user meghívásához/létrehozásához (service role key, szerver oldalon, SOHA klienshez ne kerüljön) _(admin kliens helper kész, a route a 9. modulban)_
+- [x] Admin API route user meghívásához/létrehozásához (service role key, szerver oldalon, SOHA klienshez ne kerüljön) _(server action service role-lal, admin-ellenőrzéssel – Modul 9)_
 
 ### 1.3 UI váz
 - [x] Admin layout (oldalsáv navigáció a modulokhoz, header, user menü)
@@ -234,11 +234,11 @@
 
 ## 9. MODUL – Felhasználók kezelése
 
-- [ ] Lista: aktív/inaktív userek, role
-- [ ] Új user meghívása (email megadása, szerver oldali API route service role key-jel → Supabase Auth invite)
-- [ ] Role kiosztás/módosítás (`staff`/`admin`)
-- [ ] Deaktiválás (nem törlés)
-- [ ] Csak `admin` role éri el ezt a modult
+- [x] Lista: aktív/inaktív userek, role
+- [x] Új user meghívása (email megadása, szerver oldali API route service role key-jel → Supabase Auth invite) _(service role-lal createUser + ideiglenes jelszó; email-invite SMTP-t igényelne)_
+- [x] Role kiosztás/módosítás (`staff`/`admin`)
+- [x] Deaktiválás (nem törlés)
+- [x] Csak `admin` role éri el ezt a modult _(requireAdmin + is_admin RLS)_
 
 ---
 
