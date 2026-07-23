@@ -37,6 +37,9 @@ export const NAV: NavSection[] = [
   },
   {
     title: 'Adminisztráció',
-    items: [{ href: '/felhasznalok', label: 'Felhasználók', adminOnly: true }],
+    items: [
+      { href: '/felhasznalok', label: 'Felhasználók', adminOnly: true },
+      { href: '/beallitasok', label: 'Cégadatok', adminOnly: true },
+    ],
   },
 ]

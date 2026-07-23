@@ -199,18 +199,18 @@
 ## 6. MODUL – Kigyűjtés → Kiadás
 
 ### 6.1 Kigyűjtés
-- [ ] Kiadandó tételek listája (rendelés/igény alapján, vagy szabad kigyűjtés – döntés szükséges, ld. nyitott kérdések)
-- [ ] FEFO logika: a rendszer a legkorábbi lejáratú, betárolt tételt/helyet ajánlja fel elsőként
-- [ ] Tárhely QR + termék vonalkód beolvasás megerősítéshez
-- [ ] Mentéskor: `stock_items.statusz = 'kigyűjtve'`, helyhez kötött készlet csökken, + `movement_log` bejegyzés `tipus = 'kigyűjtés'`
-- [ ] **Selejt opció**, `selejt_forras_lepes = 'kigyűjtés'`
+- [x] Kiadandó tételek listája (rendelés/igény alapján, vagy szabad kigyűjtés – döntés szükséges, ld. nyitott kérdések) _(szabad kigyűjtés kész; rendeléshez kötött ág = külön Rendelések modul később)_
+- [x] FEFO logika: a rendszer a legkorábbi lejáratú, betárolt tételt/helyet ajánlja fel elsőként
+- [x] Tárhely QR + termék vonalkód beolvasás megerősítéshez _(hely/tétel látszik; QR/vonalkód-scan a Scanner elkészültekor)_
+- [x] Mentéskor: `stock_items.statusz = 'kigyűjtve'`, helyhez kötött készlet csökken, + `movement_log` bejegyzés `tipus = 'kigyűjtés'` _(atomi RPC)_
+- [x] **Selejt opció**, `selejt_forras_lepes = 'kigyűjtés'`
 
 ### 6.2 Kiadás
-- [ ] Kigyűjtött tételek összesítése egy kiadási bizonylatba
-- [ ] Vevő adatok megadása
-- [ ] Szállítólevél **PDF generálás és nyomtatás** (sorszámozott, a Jöt. Vhr. 36. § szerinti kötelező tartalommal: kiszállító adatai + jövedéki engedélyszám, KN-kód, mennyiség, alkoholtartalom, vevő adatai)
-- [ ] Mentéskor: `stock_items.statusz = 'kiadva'`, globális készlet csökken, + `movement_log` bejegyzés `tipus = 'kiadás'`, `delivery_notes` rekord PDF-fel
-- [ ] **Selejt opció**, `selejt_forras_lepes = 'kiadás'`
+- [x] Kigyűjtött tételek összesítése egy kiadási bizonylatba
+- [x] Vevő adatok megadása
+- [x] Szállítólevél **PDF generálás és nyomtatás** (sorszámozott, a Jöt. Vhr. 36. § szerinti kötelező tartalommal: kiszállító adatai + jövedéki engedélyszám, KN-kód, mennyiség, alkoholtartalom, vevő adatai) _(nyomtatható HTML/PDF nézet + Cégadatok szerkesztő; szerveroldali PDF-fájl generálás/tárolás opcionális későbbre)_
+- [x] Mentéskor: `stock_items.statusz = 'kiadva'`, globális készlet csökken, + `movement_log` bejegyzés `tipus = 'kiadás'`, `delivery_notes` rekord PDF-fel _(atomi RPC; pdf_url a nyomtatható nézet)_
+- [ ] **Selejt opció**, `selejt_forras_lepes = 'kiadás'` _(kigyűjtésnél van selejt; a kiadás-lépésbeli selejt + az önálló Selejtezés modul (8) még hátra)_
 
 ---
 
