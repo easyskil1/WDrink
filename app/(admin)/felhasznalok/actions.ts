@@ -6,14 +6,15 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 async function assertAdmin(): Promise<{ ok: boolean }> {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { ok: false }
+  // getClaims(): a JWT-t lokálisan, kriptográfiailag ellenőrzi (ES256), így
+  // biztonságos és nem igényel hálózati kört a Supabase Auth felé.
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+  if (!userId) return { ok: false }
   const { data } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user.id)
+    .eq('id', userId)
     .maybeSingle<{ role: string }>()
   return { ok: data?.role === 'admin' }
 }

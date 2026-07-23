@@ -34,9 +34,15 @@ export async function updateSession(request: NextRequest) {
 
   // FONTOS: getClaims/getUser hívás nélkül a session nem frissül. Ne tegyünk
   // közé más logikát, különben nehezen debugolható kijelentkezéseket okozhat.
+  //
+  // getClaims() a JWT-t LOKÁLISAN ellenőrzi (ES256 aszimmetrikus kulcs,
+  // WebCrypto) – nincs hálózati kör a Supabase Auth szerverhez minden
+  // requestnél, mint a getUser()-nél. A lejárt token frissítése (getSession)
+  // továbbra is megtörténik, amikor ténylegesen szükséges.
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: claimsData,
+  } = await supabase.auth.getClaims()
+  const user = claimsData?.claims?.sub ? claimsData.claims : null
 
   const { pathname } = request.nextUrl
   const isPublic =
