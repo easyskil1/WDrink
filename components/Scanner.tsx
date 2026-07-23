@@ -31,10 +31,18 @@ export function Scanner({
       typeof navigator === 'undefined' ||
       !navigator.mediaDevices?.getUserMedia
     ) {
+      const ua = navigator.userAgent || ''
+      const isIOS = /iPhone|iPad|iPod/.test(ua)
+      // iOS-en minden böngésző WebKit; a getUserMedia gyakran csak Safariban
+      // érhető el. A Chrome for iOS UA-ban 'CriOS', a Firefox 'FxiOS'.
+      const isIOSNonSafari = isIOS && /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua)
+
       setError(
-        window.isSecureContext === false
-          ? 'A kamera csak biztonságos kapcsolaton (HTTPS) vagy localhoston érhető el. Nyisd meg az oldalt https-en (pl. a Vercel-linken), ne a gép IP-címén http-vel.'
-          : 'Ez a böngésző nem támogatja a kamerát, vagy le van tiltva. Próbáld másik böngészőben (pl. Chrome/Safari), és engedélyezd a kamerát.'
+        isIOSNonSafari
+          ? 'iPhone-on a kamerás beolvasás Safariban működik. Nyisd meg ezt az oldalt Safariban (ne Chrome/Firefox-ban), és engedélyezd a kamerát.'
+          : window.isSecureContext === false
+            ? 'A kamera csak biztonságos kapcsolaton (HTTPS) vagy localhoston érhető el. Nyisd meg az oldalt https-en (a Vercel-linken), ne a gép IP-címén http-vel.'
+            : 'Ez a böngésző nem támogatja a kamerát, vagy le van tiltva. Próbáld Safariban/Chrome-ban, és engedélyezd a kamerát.'
       )
       return
     }
