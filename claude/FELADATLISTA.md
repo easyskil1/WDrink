@@ -38,7 +38,7 @@
 
 ### 1.3 UI váz
 - [x] Admin layout (oldalsáv navigáció a modulokhoz, header, user menü)
-- [ ] Közös `<Scanner />` komponens (QR + EAN/Code128 olvasás kamerával, pl. `html5-qrcode` vagy `@zxing/library`)
+- [x] Közös `<Scanner />` komponens (QR + EAN/Code128 olvasás kamerával, pl. `html5-qrcode` vagy `@zxing/library`) _(`@zxing/browser`; bekötve: bevételezés vonalkód, termék EAN, betárolás/átrárolás tárhely QR)_
 - [ ] Közös form/tábla komponensek (lista, szűrés, pagináció) – ezt minden modul újrahasználja
 
 ---

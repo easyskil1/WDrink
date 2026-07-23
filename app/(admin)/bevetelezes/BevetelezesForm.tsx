@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { KISZERELES_LABEL, type KiszerelesTipus } from '@/lib/products'
 import { SELEJT_OK_OPTIONS, type UnitCatalogItem } from '@/lib/stock'
 import type { Supplier } from '@/lib/suppliers'
+import { ScanButton } from '@/components/ScanButton'
 import { createBevetelezes, type BevItem } from './actions'
 
 type Row = {
@@ -217,13 +218,16 @@ export function BevetelezesForm({
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <label className="flex flex-col gap-1">
                     <span className={fieldLabel}>Vonalkód</span>
-                    <input
-                      value={r.barcode}
-                      onChange={(e) => onBarcode(r.key, e.target.value)}
-                      inputMode="numeric"
-                      placeholder="beolvas / kézi"
-                      className={input}
-                    />
+                    <div className="flex gap-1">
+                      <input
+                        value={r.barcode}
+                        onChange={(e) => onBarcode(r.key, e.target.value)}
+                        inputMode="numeric"
+                        placeholder="beolvas / kézi"
+                        className={input}
+                      />
+                      <ScanButton onScan={(text) => onBarcode(r.key, text)} />
+                    </div>
                   </label>
                   <label className="col-span-2 flex flex-col gap-1 sm:col-span-2">
                     <span className={fieldLabel}>Termék / kiszerelés</span>

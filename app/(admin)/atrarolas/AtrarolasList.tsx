@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { KISZERELES_LABEL, type KiszerelesTipus } from '@/lib/products'
+import { ScanButton } from '@/components/ScanButton'
 import type { BetaroltItem, LocationOption } from './page'
 import { atrarolAction } from './actions'
 
@@ -65,18 +66,28 @@ function Row({
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <label className="col-span-2 flex flex-col gap-1 sm:col-span-1">
           <span className={fieldLabel}>Cél tárhely</span>
-          <select
-            value={celId}
-            onChange={(e) => setCelId(e.target.value)}
-            className={input}
-          >
-            <option value="">— válassz —</option>
-            {targets.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.teljes_kod}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-1">
+            <select
+              value={celId}
+              onChange={(e) => setCelId(e.target.value)}
+              className={input}
+            >
+              <option value="">— válassz —</option>
+              {targets.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.teljes_kod}
+                </option>
+              ))}
+            </select>
+            <ScanButton
+              title="Tárhely QR"
+              onScan={(text) => {
+                const loc = targets.find((l) => l.teljes_kod === text.trim())
+                if (loc) setCelId(loc.id)
+                else setError(`Nincs ilyen (cél) tárhely: ${text}`)
+              }}
+            />
+          </div>
         </label>
         <label className="flex flex-col gap-1">
           <span className={fieldLabel}>Mennyiség (db)</span>

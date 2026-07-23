@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { KISZERELES_LABEL, type KiszerelesTipus } from '@/lib/products'
 import { SELEJT_OK_OPTIONS } from '@/lib/stock'
+import { ScanButton } from '@/components/ScanButton'
 import type { LocationOption, PufferItem } from './page'
 import { betarolAction, selejtBetarolasAction } from './actions'
 
@@ -92,18 +93,30 @@ function Row({
         {mode === 'betarol' ? (
           <label className="col-span-2 flex flex-col gap-1 sm:col-span-1">
             <span className={fieldLabel}>Cél tárhely</span>
-            <select
-              value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-              className={input}
-            >
-              <option value="">— válassz —</option>
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.teljes_kod}
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-1">
+              <select
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+                className={input}
+              >
+                <option value="">— válassz —</option>
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.teljes_kod}
+                  </option>
+                ))}
+              </select>
+              <ScanButton
+                title="Tárhely QR"
+                onScan={(text) => {
+                  const loc = locations.find(
+                    (l) => l.teljes_kod === text.trim()
+                  )
+                  if (loc) setLocationId(loc.id)
+                  else setError(`Nincs ilyen tárhely: ${text}`)
+                }}
+              />
+            </div>
           </label>
         ) : (
           <label className="col-span-2 flex flex-col gap-1 sm:col-span-1">

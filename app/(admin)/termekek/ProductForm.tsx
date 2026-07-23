@@ -14,6 +14,7 @@ import {
   type ProductUnit,
   type UrtartalomEgyseg,
 } from '@/lib/products'
+import { ScanButton } from '@/components/ScanButton'
 import type { ProductFormState } from './actions'
 
 type Action = (
@@ -283,13 +284,18 @@ export function ProductForm({
 
                 <label className="col-span-2 flex flex-col gap-1 sm:col-span-1">
                   <span className={fieldLabel}>Vonalkód (EAN)</span>
-                  <input
-                    value={u.vonalkod}
-                    onChange={(e) => updateUnit(i, { vonalkod: e.target.value })}
-                    inputMode="numeric"
-                    placeholder="kézi bevitel"
-                    className={input}
-                  />
+                  <div className="flex gap-1">
+                    <input
+                      value={u.vonalkod}
+                      onChange={(e) => updateUnit(i, { vonalkod: e.target.value })}
+                      inputMode="numeric"
+                      placeholder="kézi / beolvas"
+                      className={input}
+                    />
+                    <ScanButton
+                      onScan={(text) => updateUnit(i, { vonalkod: text })}
+                    />
+                  </div>
                 </label>
 
                 <label className="flex flex-col gap-1">
