@@ -48,10 +48,28 @@ update public.profiles set role = 'admin' where id =
   (select id from auth.users where email = 'ide@az-email.hu');
 ```
 
-## 5. Futtatás
+## 5. Futtatás (helyi)
 
 ```bash
 npm run dev
 ```
 
 A `/login`-on lépj be. A védett admin felület a `/`-on érhető el.
+
+## 6. Éles deploy – Vercel
+
+A GitHub Pages NEM alkalmas (statikus), mert ez szerver-oldali Next.js app.
+Vercel deploy (ingyenes):
+
+1. https://vercel.com → **Sign in with GitHub** (easyskil1 fiók).
+2. **Add New… → Project** → importáld az `easyskil1/WDrink` repót.
+3. A framework automatikusan **Next.js** – ne állíts semmit.
+4. **Environment Variables** – add hozzá a hármat (a `.env.local`-ból):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publishable kulcs)
+   - `SUPABASE_SERVICE_ROLE_KEY` (secret kulcs – szerver oldali, nem publikus)
+5. **Deploy**. Pár perc múlva kapsz egy `https://wdrink-….vercel.app` URL-t.
+6. Belépés: `6gambino9@gmail.com` / `2026`.
+
+A kamerás Scanner HTTPS-t igényel – a Vercel URL HTTPS, így működik.
+(Supabase oldalon nincs teendő: jelszavas belépéshez nem kell redirect URL.)
