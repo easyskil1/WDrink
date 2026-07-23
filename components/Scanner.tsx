@@ -22,6 +22,23 @@ export function Scanner({
 
   useEffect(() => {
     let cancelled = false
+
+    // A kamera (getUserMedia) csak biztonságos kontextusban érhető el:
+    // HTTPS vagy localhost. HTTP-n (pl. telefonról a gép LAN IP-jén) a
+    // navigator.mediaDevices undefined – adjunk érthető üzenetet nyers hiba
+    // helyett.
+    if (
+      typeof navigator === 'undefined' ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
+      setError(
+        window.isSecureContext === false
+          ? 'A kamera csak biztonságos kapcsolaton (HTTPS) vagy localhoston érhető el. Nyisd meg az oldalt https-en (pl. a Vercel-linken), ne a gép IP-címén http-vel.'
+          : 'Ez a böngésző nem támogatja a kamerát, vagy le van tiltva. Próbáld másik böngészőben (pl. Chrome/Safari), és engedélyezd a kamerát.'
+      )
+      return
+    }
+
     const reader = new BrowserMultiFormatReader()
 
     async function start() {
