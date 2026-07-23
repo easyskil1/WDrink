@@ -169,12 +169,12 @@
 
 ## 4. MODUL – Termékek
 
-- [ ] Termék CRUD (`products` tábla mezői alapján)
-- [ ] Kiszerelési szintek kezelése termékenként (`product_units`) – dinamikusan hozzáadható/törölhető sorok (palack/karton/raklap)
-- [ ] Minden kiszereléshez: vonalkód (kézi beviteli mező VAGY kamerás beolvasás a `<Scanner />`-rel), mennyiség alapegységben, árak, betétdíj
-- [ ] Beszállító kiválasztása/kezelése (`suppliers` CRUD)
-- [ ] Validáció: vonalkód egyedi legyen az összes `product_units` sor között
-- [ ] Termék lista: keresés név/vonalkód szerint, szűrés kategória/beszállító szerint
+- [x] Termék CRUD (`products` tábla mezői alapján)
+- [x] Kiszerelési szintek kezelése termékenként (`product_units`) – dinamikusan hozzáadható/törölhető sorok (palack/karton/raklap)
+- [x] Minden kiszereléshez: vonalkód (kézi beviteli mező VAGY kamerás beolvasás a `<Scanner />`-rel), mennyiség alapegységben, árak, betétdíj _(kézi bevitel kész + űrtartalom; Scanner bekötés az 1.3 komponens elkészültekor)_
+- [x] Beszállító kiválasztása/kezelése (`suppliers` CRUD)
+- [x] Validáció: vonalkód egyedi legyen az összes `product_units` sor között
+- [x] Termék lista: keresés név/vonalkód szerint, szűrés kategória/beszállító szerint
 
 ---
 
