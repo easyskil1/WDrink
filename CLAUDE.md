@@ -5,6 +5,16 @@
 > Ez a szakasz rögzíti, milyen NEM kódbeli beállítások kellenek a helyes és
 > gyors működéshez. Ha új Vercel projekt jön létre, ezeket újra be kell állítani.
 
+## Git repo / auto-deploy — FIGYELEM
+
+- A Vercel projekt (`drink_world`, `prj_tGiPOg60LV26gxT28b4qIucuZKXq`) a
+  **`easyskil1/drink_world`** GitHub repót figyeli (production branch: `main`).
+- A helyi `origin` **erre** mutat → **ide pusholva auto-deploy indul**.
+- A `easyskil1/WDrink` repó (helyi remote neve: `wdrink-backup`) csak **backup**,
+  a Vercel NEM figyeli (a Vercel GitHub App-nak nincs is hozzáférése).
+- Korábban a kód a WDrink-be ment, a Vercel meg a drink_world-öt figyelte → a
+  pushok soha nem deployoltak. Ezt rendeztük: origin = drink_world.
+
 ## Régió — KRITIKUS a sebességhez
 
 - **Supabase adatbázis: Frankfurt (EU).** Adatrezidencia miatt is EU-ban marad
