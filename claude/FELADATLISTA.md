@@ -228,7 +228,7 @@
 - [x] Kötelező indok mező: `sérült`/`lejárt`/`hiány`/`egyéb`
 - [x] Opcionális fotó/dokumentáció csatolása _(selejt-notes Storage bucket)_
 - [x] Mentéskor: globális + helyhez kötött készlet csökken, `movement_log` bejegyzés `tipus = 'selejtezés'` _(atomi RPC)_
-- [ ] Selejt riport: időszak/ok/termék szerinti bontás (a dashboard része) _(Modul 10 dashboard)_
+- [x] Selejt riport: időszak/ok/termék szerinti bontás (a dashboard része) _(dashboard: selejt ok szerinti bontás)_
 
 ---
 
@@ -244,12 +244,12 @@
 
 ## 10. MODUL – Dashboard
 
-- [ ] Bevétel/eladás időszak szerint (nap/hét/hónap), grafikon
-- [ ] Top termékek eladás szerint
-- [ ] Készletérték (globális + helyenkénti bontás)
-- [ ] Alacsony készlet riasztás (`min_keszlet` alapján)
-- [ ] Selejt/veszteség kimutatás – **külön sor**, nem eladásként számolva, ok szerinti bontásban
-- [ ] Puffer/kigyűjtve állapotú tételek áttekintése (mennyi van "félkész" állapotban)
+- [x] Bevétel/eladás időszak szerint (nap/hét/hónap), grafikon _(utolsó 30 nap, napi bevételezés vs. kiadás)_
+- [x] Top termékek eladás szerint
+- [x] Készletérték (globális + helyenkénti bontás) _(beszerzési áron)_
+- [x] Alacsony készlet riasztás (`min_keszlet` alapján)
+- [x] Selejt/veszteség kimutatás – **külön sor**, nem eladásként számolva, ok szerinti bontásban
+- [x] Puffer/kigyűjtve állapotú tételek áttekintése (mennyi van "félkész" állapotban)
 
 ---
 
