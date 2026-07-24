@@ -51,6 +51,31 @@ function hasCameraApi(): boolean {
   )
 }
 
+// Ideiglenes diagnosztika: pontosan mit tud a böngésző. Segít eldönteni, miért
+// nem indul a kamera (pl. iOS Chrome getUserMedia hiány).
+function cameraDiagnostics(): string {
+  if (typeof navigator === 'undefined') return 'nincs navigator'
+  const md = navigator.mediaDevices
+  const secure = typeof window !== 'undefined' ? String(window.isSecureContext) : '?'
+  const ua = navigator.userAgent || ''
+  const brand = /CriOS/.test(ua)
+    ? 'Chrome-iOS'
+    : /FxiOS/.test(ua)
+      ? 'Firefox-iOS'
+      : /EdgiOS/.test(ua)
+        ? 'Edge-iOS'
+        : /Safari/.test(ua) && /Version\//.test(ua)
+          ? 'Safari'
+          : 'egyéb'
+  return [
+    `böngésző: ${brand}`,
+    `secureContext: ${secure}`,
+    `mediaDevices: ${md ? 'van' : 'NINCS'}`,
+    `getUserMedia: ${typeof md?.getUserMedia === 'function' ? 'van' : 'NINCS'}`,
+    `BarcodeDetector: ${'BarcodeDetector' in globalThis ? 'natív' : 'WASM'}`,
+  ].join(' · ')
+}
+
 // Natív-preferáló detektor létrehozása. Androidon a beépített motort adja
 // vissza (nincs letöltés), egyébként a self-hostolt WASM ponyfillt.
 async function createDetector(): Promise<{ detector: DetectorLike; engine: 'native' | 'wasm' }> {
@@ -163,7 +188,10 @@ export function Scanner({
   // iOS Chrome elveszti a gesztust és megtagadja a kamerát.
   const startCamera = useCallback(async () => {
     if (!hasCameraApi()) {
-      setMode('photo')
+      setCamState('error')
+      setCamError(
+        'Ez a böngésző nem tesz elérhetővé kamerát (getUserMedia hiányzik). iPhone-on próbáld Safariban megnyitni, vagy használd a fotós beolvasást.'
+      )
       return
     }
     stopCamera()
@@ -182,8 +210,9 @@ export function Scanner({
         audio: false,
       })
     } catch (e) {
+      const name = (e as { name?: string })?.name || 'ismeretlen'
       setCamState('error')
-      setCamError(describeCameraError(e))
+      setCamError(`${describeCameraError(e)} [${name}]`)
       return
     }
 
@@ -315,6 +344,9 @@ export function Scanner({
                         ? 'Újra: kamera indítása'
                         : 'Kamera indítása'}
                 </button>
+                <p className="break-words font-mono text-[10px] leading-relaxed text-white/40">
+                  {cameraDiagnostics()}
+                </p>
               </div>
             )}
 
