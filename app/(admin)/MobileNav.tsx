@@ -54,7 +54,10 @@ export function MobileNav({ role }: { role: Role | null }) {
           />
           {/* Drawer */}
           <div className="relative flex h-full w-72 max-w-[80vw] flex-col bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <div
+              className="flex items-center justify-between border-b border-slate-200 px-5 pb-4"
+              style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+            >
               <div>
                 <p className="text-sm font-semibold text-slate-900">
                   Drink World Győr
