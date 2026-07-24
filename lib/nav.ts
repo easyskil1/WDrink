@@ -45,4 +45,8 @@ export const NAV: NavSection[] = [
       { href: '/beallitasok', label: 'Cégadatok', adminOnly: true },
     ],
   },
+  {
+    title: 'Eszköz',
+    items: [{ href: '/preferenciak', label: 'Beállítások' }],
+  },
 ]

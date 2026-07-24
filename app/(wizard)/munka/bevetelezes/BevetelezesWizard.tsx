@@ -538,6 +538,7 @@ export function BevetelezesWizard({
             />
             <ScanButton
               title="Termék vonalkód"
+              allowContinuous
               onScan={(text) => {
                 const hit = catalog.find((c) => c.vonalkod && c.vonalkod === text.trim())
                 if (hit) addLine(hit)

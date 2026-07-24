@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { unlockAudio } from './beep'
+import { getContinuousScan } from '@/lib/deviceSettings'
 
 const Scanner = dynamic(() => import('./Scanner').then((m) => m.Scanner), {
   ssr: false,
@@ -11,22 +12,30 @@ const Scanner = dynamic(() => import('./Scanner').then((m) => m.Scanner), {
 /**
  * Kamera-ikonos gomb, ami megnyitja a Scanner-t, és a beolvasott szöveget
  * átadja az onScan-nek. Bármely vonalkód/QR beviteli mező mellé tehető.
+ *
+ * `allowContinuous`: ha true ÉS az eszköz-beállításban be van kapcsolva a
+ * folyamatos szkennelés, a kamera nyitva marad, és minden beolvasásra hívja az
+ * onScan-t (a Scanner dedup-cooldownnal védi a duplázás ellen). A folyamat
+ * kézzel, a Bezárás gombbal ér véget. Egyébként egyszeri beolvasás (bezár).
  */
 export function ScanButton({
   onScan,
   title = 'Beolvasás',
+  allowContinuous = false,
 }: {
   onScan: (text: string) => void
   title?: string
+  allowContinuous?: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [continuous, setContinuous] = useState(false)
 
   const handle = useCallback(
     (text: string) => {
       onScan(text)
-      setOpen(false)
+      if (!continuous) setOpen(false)
     },
-    [onScan]
+    [onScan, continuous]
   )
 
   return (
@@ -35,6 +44,7 @@ export function ScanButton({
         type="button"
         onClick={() => {
           unlockAudio() // hang feloldása még a megnyitó gesztusból (iOS)
+          setContinuous(allowContinuous && getContinuousScan())
           setOpen(true)
         }}
         title={title}
@@ -49,7 +59,13 @@ export function ScanButton({
           <line x1="7" y1="12" x2="17" y2="12" />
         </svg>
       </button>
-      {open && <Scanner onResult={handle} onClose={() => setOpen(false)} />}
+      {open && (
+        <Scanner
+          onResult={handle}
+          onClose={() => setOpen(false)}
+          continuous={continuous}
+        />
+      )}
     </>
   )
 }

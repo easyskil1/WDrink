@@ -124,9 +124,12 @@ function describeCameraError(e: unknown): string {
 export function Scanner({
   onResult,
   onClose,
+  continuous = false,
 }: {
   onResult: (text: string) => void
   onClose: () => void
+  /** Folyamatos mód: a kamera nyitva marad, minden (deduplikált) kód emitál. */
+  continuous?: boolean
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const detectorRef = useRef<DetectorLike | null>(null)
@@ -135,6 +138,9 @@ export function Scanner({
   const scanningRef = useRef(false)
   const doneRef = useRef(false)
   const autoStartedRef = useRef(false)
+  // Folyamatos mód dedup: az utoljára emitált kód + időpont (ms).
+  const lastEmitRef = useRef<{ value: string; at: number }>({ value: '', at: 0 })
+  const [scanCount, setScanCount] = useState(0)
 
   // Van-e élő kamera egyáltalán ezen a böngészőn (client-only, ezért lazy).
   const [liveSupported] = useState(() => hasCameraApi())
@@ -163,6 +169,23 @@ export function Scanner({
       scanningRef.current = false
       playBeep()
       if (navigator.vibrate) navigator.vibrate(60)
+      onResult(text)
+    },
+    [onResult]
+  )
+
+  // Folyamatos mód: NEM áll le. Ugyanazt a kódot a cooldown ideje alatt
+  // (2 mp) figyelmen kívül hagyjuk, hogy ne duplázódjon.
+  const CONTINUOUS_COOLDOWN_MS = 2000
+  const emitContinuous = useCallback(
+    (text: string) => {
+      const now = performance.now()
+      const last = lastEmitRef.current
+      if (text === last.value && now - last.at < CONTINUOUS_COOLDOWN_MS) return
+      lastEmitRef.current = { value: text, at: now }
+      playBeep()
+      if (navigator.vibrate) navigator.vibrate(40)
+      setScanCount((c) => c + 1)
       onResult(text)
     },
     [onResult]
@@ -251,8 +274,13 @@ export function Scanner({
         try {
           const codes = await detector.detect(video)
           if (codes.length > 0 && scanningRef.current) {
-            emit(codes[0].rawValue)
-            return
+            if (continuous) {
+              emitContinuous(codes[0].rawValue)
+              // NEM állunk le: megyünk tovább a következő beolvasásra.
+            } else {
+              emit(codes[0].rawValue)
+              return
+            }
           }
         } catch {
           // Átmeneti dekódolási hiba - nem kritikus, megyünk tovább.
@@ -261,7 +289,7 @@ export function Scanner({
       rafRef.current = requestAnimationFrame(loop)
     }
     rafRef.current = requestAnimationFrame(loop)
-  }, [emit, stopCamera])
+  }, [emit, emitContinuous, continuous, stopCamera])
 
   // Leállítás a komponens bezárásakor.
   useEffect(() => stopCamera, [stopCamera])
@@ -319,7 +347,11 @@ export function Scanner({
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90">
       <div className="flex items-center justify-between px-4 py-3 text-white">
         <span className="text-sm font-medium">
-          {mode === 'live' ? 'Beolvasás' : 'Beolvasás fotóval'}
+          {mode === 'live'
+            ? continuous
+              ? 'Folyamatos beolvasás'
+              : 'Beolvasás'
+            : 'Beolvasás fotóval'}
         </span>
         <button
           type="button"
@@ -345,6 +377,11 @@ export function Scanner({
               />
               {camState === 'running' && (
                 <div className="pointer-events-none absolute inset-0 m-8 rounded-lg border-2 border-white/70" />
+              )}
+              {continuous && camState === 'running' && (
+                <div className="pointer-events-none absolute left-2 top-2 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">
+                  Beolvasva: {scanCount}
+                </div>
               )}
             </div>
 
@@ -454,7 +491,9 @@ export function Scanner({
 
       {mode === 'live' && camState === 'running' && (
         <p className="px-4 pb-6 text-center text-xs text-white/60">
-          Irányítsd a kamerát a vonalkódra vagy QR kódra.
+          {continuous
+            ? 'Olvasd be egymás után a kódokat. Ha kész, koppints a Bezárás gombra.'
+            : 'Irányítsd a kamerát a vonalkódra vagy QR kódra.'}
         </p>
       )}
     </div>

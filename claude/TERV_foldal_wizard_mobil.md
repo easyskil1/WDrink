@@ -142,8 +142,13 @@ munkaválasztó, viewport + PWA manifest (orientation portrait), mind a 6 wizard
   / "Több tétel" módválasztó. Több tétel mód: egymás utáni szkennelés (ugyanaz
   újra = +1), élő lista soronkénti +/- és törlés, majd egy bizonylatba mentés.
 - iOS dátum-mező kilógás javítva (globális CSS, input[type=date] reset).
-- Lehetséges következő: folyamatos (kamera nyitva maradó) szkennelés a több-tétel
-  módhoz - most szkennelésenként újra kell nyitni a kamerát.
+- Folyamatos szkennelés (KÉSZ): új "Beállítások" menü (`/preferenciak`,
+  `lib/deviceSettings.ts`, localStorage) kapcsolóval. Bekapcsolva a több-tételes
+  bevételezésnél a kamera nyitva marad, dedup-cooldownnal (2 mp, ugyanaz a kód
+  nem duplázódik), bippel és "Beolvasva: N" számlálóval. A Scanner `continuous`
+  propot kapott, a ScanButton `allowContinuous`-t.
+- Szkenner hang (KÉSZ): `components/beep.ts` közös Web Audio bip, a ScanButton
+  megnyitó gesztusából feloldva.
 
 **Klasszikus adminoldalak mobil-csiszolása (kész):** audit alapján az admin
 szekció nagyrészt már mobil-first volt. Javítva: `helyek` táblázat -> kártyás
