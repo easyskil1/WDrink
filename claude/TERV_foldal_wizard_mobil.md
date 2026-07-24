@@ -102,6 +102,7 @@
   - [x] `"orientation": "portrait"` — álló nézet rögzítéséhez
   - [x] Ikonok (192/512 + maskable) a "Hozzáadás a kezdőképernyőhöz" funkcióhoz
 - [x] Service worker alapszintű beállítása → `public/sw.js` + `public/offline.html` + `components/ServiceWorkerRegister.tsx` (root layoutba kötve, csak produkcióban). Óvatos cache: immutable assetek cache-first, navigáció network-first offline fallbackkel, Supabase/RSC érintetlen. A `proxy.ts` matcher kizárja a PWA-endpointokat az auth alól.
+- [x] Telepítési segédablak: `components/InstallPrompt.tsx` — egyszeri, platformfüggő útmutató (iOS Safari / iOS más böngésző → Safari / Android / asztali), Androidon valódi „Telepítés” gomb (`beforeinstallprompt`), lent „Ne jelenjen meg többet” pipa (localStorage). Standalone módban nem jelenik meg.
 - [ ] Tesztelés: telepítés utáni fullscreen + orientáció-zár ellenőrzése Android/iOS eszközön (eszközön, kézzel)
 
 ---
