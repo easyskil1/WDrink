@@ -43,7 +43,7 @@ export default async function LocationsPage({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">
             Raktári helyek
@@ -52,7 +52,7 @@ export default async function LocationsPage({
             {locations.length} tárhely
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             href={labelHref}
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
@@ -116,73 +116,54 @@ export default async function LocationsPage({
         </p>
       )}
 
-      {/* Táblázat */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Teljes kód</th>
-              <th className="px-4 py-3">Típus</th>
-              <th className="px-4 py-3">Állapot</th>
-              <th className="px-4 py-3 text-right">Műveletek</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {locations.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
-                  Nincs a szűrésnek megfelelő tárhely.
-                </td>
-              </tr>
-            )}
-            {locations.map((loc) => (
-              <tr key={loc.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-mono font-medium text-slate-900">
-                  {loc.teljes_kod}
-                </td>
-                <td className="px-4 py-3 text-slate-600">
-                  {LOCATION_TIPUS_LABEL[loc.tipus]}
-                </td>
-                <td className="px-4 py-3">
-                  {loc.aktiv ? (
-                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                      Aktív
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-                      Inaktív
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-3">
-                    <Link
-                      href={`/helyek/${loc.id}`}
-                      className="font-medium text-slate-700 hover:underline"
-                    >
-                      Szerkeszt
-                    </Link>
-                    <form
-                      action={toggleLocationActive.bind(
-                        null,
-                        loc.id,
-                        !loc.aktiv
-                      )}
-                    >
-                      <button
-                        type="submit"
-                        className="font-medium text-slate-500 hover:underline"
-                      >
-                        {loc.aktiv ? 'Deaktivál' : 'Aktivál'}
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Lista - kártyák (mobile-first) */}
+      <ul className="mt-4 flex flex-col gap-3">
+        {locations.length === 0 && (
+          <li className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-400">
+            Nincs a szűrésnek megfelelő tárhely.
+          </li>
+        )}
+        {locations.map((loc) => (
+          <li
+            key={loc.id}
+            className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <span className="font-mono font-medium text-slate-900">
+                {loc.teljes_kod}
+              </span>
+              <span className="text-sm text-slate-500">
+                {LOCATION_TIPUS_LABEL[loc.tipus]}
+              </span>
+              {loc.aktiv ? (
+                <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                  Aktív
+                </span>
+              ) : (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                  Inaktív
+                </span>
+              )}
+            </div>
+            <div className="flex shrink-0 gap-3">
+              <Link
+                href={`/helyek/${loc.id}`}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Szerkeszt
+              </Link>
+              <form action={toggleLocationActive.bind(null, loc.id, !loc.aktiv)}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
+                >
+                  {loc.aktiv ? 'Deaktivál' : 'Aktivál'}
+                </button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

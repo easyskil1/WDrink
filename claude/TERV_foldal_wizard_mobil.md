@@ -128,10 +128,14 @@
 munkaválasztó, viewport + PWA manifest (orientation portrait), mind a 6 wizard a
 `app/(wizard)/munka/*` alatt, közös keret a `components/wizard/`-ban.
 
+**Utólag hozzáadva:**
+- Álló tájolás kényszerítése telefonon: `.orientation-lock` CSS-fedőréteg a
+  `globals.css`-ben + markup a root layoutban (a manifest orientation csak
+  Android standalone-nál hat, ez iOS/böngésző esetén is blokkolja a fekvőt).
+- Post-login default DÖNTÉS: marad a munkaválasztó (`/`) mindenkinek; a
+  statisztika egy koppintásra van a menüből. (proxy.ts már így irányít.)
+
 **Még hátra:**
 - Eszközön tesztelés (Android/iOS): telepítés, fullscreen, orientáció-zár,
   kamera a wizardökben, offline fallback.
-- Nyitott döntés véglegesítése: a főoldal `/` most a munkaválasztó - ha a
-  bejelentkezés utáni default más legyen, azt még be lehet állítani.
-
-Csak az eszközön végzett kézi tesztelés maradt - minden más kész és buildel.
+- Klasszikus adminoldalak mobil-csiszolása (folyamatban).
