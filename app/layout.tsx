@@ -34,6 +34,11 @@ export const viewport: Viewport = {
   themeColor: "#0b0d10",
   // A notch/kamerakivágás mögé is kiterjed (fontos a standalone appnál).
   viewportFit: "cover",
+  // Ne nagyítva nyisson meg mobilon, és a mezőkre fókuszáláskor se zoomoljon.
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

@@ -14,7 +14,10 @@ export type NavSection = {
 export const NAV: NavSection[] = [
   {
     title: 'Áttekintés',
-    items: [{ href: '/', label: 'Dashboard' }],
+    items: [
+      { href: '/', label: 'Kezdőlap' },
+      { href: '/statisztika', label: 'Statisztika' },
+    ],
   },
   {
     title: 'Törzsadatok',

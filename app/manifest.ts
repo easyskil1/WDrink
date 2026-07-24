@@ -10,6 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Ital-nagykereskedés logisztikai admin rendszer',
     start_url: '/',
     display: 'standalone',
+    orientation: 'portrait',
     background_color: '#0b0d10',
     theme_color: '#0b0d10',
     lang: 'hu',

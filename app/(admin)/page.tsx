@@ -1,231 +1,136 @@
-import { createClient } from '@/lib/supabase/server'
-import { SELEJT_OK_LABEL, type SelejtOk } from '@/lib/stock'
+import Link from 'next/link'
 
-type DashboardData = {
-  keszletertek: number
-  keszlet_helyenkent: { teljes_kod: string; ertek: number }[]
-  puffer_db: number
-  puffer_tetel: number
-  kigyujtve_db: number
-  kigyujtve_tetel: number
-  alacsony_keszlet: { nev: string; keszlet: number; min_keszlet: number }[]
-  top_termekek: { nev: string; eladott_db: number }[]
-  selejt: { ok: string; db: number }[]
-  idosor: { nap: string; bevet_db: number; kiad_db: number }[]
+/**
+ * Főoldal – kártyás munkaválasztó (mobil-first).
+ *
+ * Ez a napi munkafolyamatok gyors belépési pontja: 6 nagy kártya, mindegyik
+ * egy modul wizard-flow-jának 1. lépésére navigál (`/munka/...`). A klasszikus,
+ * görgethető adminoldalak változatlanul elérhetők az oldalsáv menüből.
+ */
+
+type WorkCard = {
+  href: string
+  label: string
+  icon: React.ReactNode
+  /** Akcentus háttér (ikon-buborék). */
+  accent: string
 }
 
-const ft = (n: number) =>
-  new Intl.NumberFormat('hu-HU', { maximumFractionDigits: 0 }).format(
-    Math.round(n)
-  ) + ' Ft'
-
-function Card({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-      <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
-      <div className="mt-3">{children}</div>
-    </div>
-  )
+const iconProps = {
+  width: 30,
+  height: 30,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
+const CARDS: WorkCard[] = [
+  {
+    href: '/munka/bevetelezes',
+    label: 'Bevételezés',
+    accent: 'bg-emerald-50 text-emerald-600',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M12 3v12" />
+        <path d="m7 10 5 5 5-5" />
+        <path d="M5 21h14" />
+      </svg>
+    ),
+  },
+  {
+    href: '/munka/betarolas',
+    label: 'Betárolás',
+    accent: 'bg-sky-50 text-sky-600',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M3 7l9-4 9 4-9 4-9-4Z" />
+        <path d="M3 7v10l9 4 9-4V7" />
+        <path d="M12 11v10" />
+      </svg>
+    ),
+  },
+  {
+    href: '/munka/atrarolas',
+    label: 'Átrárolás',
+    accent: 'bg-violet-50 text-violet-600',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M17 3l4 4-4 4" />
+        <path d="M21 7H7" />
+        <path d="M7 21l-4-4 4-4" />
+        <path d="M3 17h14" />
+      </svg>
+    ),
+  },
+  {
+    href: '/munka/osszekeszites',
+    label: 'Összekészítés',
+    accent: 'bg-amber-50 text-amber-600',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M5 7h14l-1 13H6L5 7Z" />
+        <path d="M9 7V5a3 3 0 0 1 6 0v2" />
+        <path d="m9 12 2 2 4-4" />
+      </svg>
+    ),
+  },
+  {
+    href: '/munka/kiszallitas',
+    label: 'Kiszállítás',
+    accent: 'bg-orange-50 text-orange-600',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M1 5h13v10H1z" />
+        <path d="M14 8h4l3 3v4h-7V8Z" />
+        <circle cx="5.5" cy="17.5" r="1.8" />
+        <circle cx="17.5" cy="17.5" r="1.8" />
+      </svg>
+    ),
+  },
+  {
+    href: '/munka/selejtezes',
+    label: 'Selejtezés',
+    accent: 'bg-rose-50 text-rose-600',
+    icon: (
+      <svg {...iconProps}>
+        <path d="M4 7h16" />
+        <path d="M10 11v6M14 11v6" />
+        <path d="M6 7l1 13h10l1-13" />
+        <path d="M9 7V4h6v3" />
+      </svg>
+    ),
+  },
+]
+
+export default function HomePage() {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-        {label}
+    <div className="mx-auto max-w-3xl">
+      <h1 className="text-2xl font-semibold text-slate-900">Munkaválasztó</h1>
+      <p className="mt-1 text-sm text-slate-500">
+        Válaszd ki a folyamatot. A klasszikus oldalak a menüből elérhetők.
       </p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
-      {sub && <p className="text-sm text-slate-500">{sub}</p>}
-    </div>
-  )
-}
 
-/** Vízszintes sávdiagram (top termékek, selejt). */
-function HBars({
-  rows,
-  color,
-  unit = 'db',
-}: {
-  rows: { label: string; value: number }[]
-  color: string
-  unit?: string
-}) {
-  const max = Math.max(1, ...rows.map((r) => r.value))
-  if (rows.length === 0)
-    return <p className="text-sm text-slate-400">Nincs adat.</p>
-  return (
-    <ul className="flex flex-col gap-2">
-      {rows.map((r) => (
-        <li key={r.label} className="text-sm">
-          <div className="flex justify-between">
-            <span className="truncate pr-2 text-slate-700">{r.label}</span>
-            <span className="shrink-0 font-medium text-slate-900">
-              {r.value} {unit}
-            </span>
-          </div>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${(r.value / max) * 100}%`, background: color }}
-            />
-          </div>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-/** 30 napos bevét/kiadás oszlopdiagram. */
-function TimeSeries({ data }: { data: DashboardData['idosor'] }) {
-  const max = Math.max(1, ...data.map((d) => Math.max(d.bevet_db, d.kiad_db)))
-  return (
-    <div className="overflow-x-auto">
-      <div className="flex min-w-[600px] items-end gap-1" style={{ height: 140 }}>
-        {data.map((d) => (
-          <div
-            key={d.nap}
-            className="flex flex-1 flex-col items-center justify-end gap-0.5"
-            title={`${d.nap} · bevét ${d.bevet_db} · kiadás ${d.kiad_db}`}
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        {CARDS.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="flex aspect-square min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-center transition active:scale-[0.98] hover:border-slate-300 hover:shadow-sm"
           >
-            <div className="flex w-full items-end justify-center gap-0.5" style={{ height: 120 }}>
-              <div
-                className="w-1/2 rounded-t bg-emerald-400"
-                style={{ height: `${(d.bevet_db / max) * 100}%` }}
-              />
-              <div
-                className="w-1/2 rounded-t bg-slate-800"
-                style={{ height: `${(d.kiad_db / max) * 100}%` }}
-              />
-            </div>
-            <span className="text-[9px] text-slate-400">
-              {d.nap.slice(8, 10)}
+            <span
+              className={`flex h-14 w-14 items-center justify-center rounded-2xl ${card.accent}`}
+            >
+              {card.icon}
             </span>
-          </div>
+            <span className="text-sm font-semibold text-slate-800">
+              {card.label}
+            </span>
+          </Link>
         ))}
       </div>
-      <div className="mt-2 flex gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
-          Bevételezés
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-slate-800" />
-          Kiadás
-        </span>
-      </div>
-    </div>
-  )
-}
-
-export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data, error } = await supabase.rpc('dashboard_data')
-  const d = (data ?? null) as DashboardData | null
-
-  return (
-    <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Áttekintés a raktári logisztikáról.
-      </p>
-
-      {error && <p className="mt-4 text-sm text-red-600">Hiba: {error.message}</p>}
-
-      {d && (
-        <div className="mt-6 flex flex-col gap-4">
-          {/* KPI-k */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Kpi label="Készletérték (beszerzési)" value={ft(d.keszletertek)} />
-            <Kpi
-              label="Pufferben"
-              value={`${d.puffer_db} db`}
-              sub={`${d.puffer_tetel} tétel betárolásra vár`}
-            />
-            <Kpi
-              label="Kigyűjtve"
-              value={`${d.kigyujtve_db} db`}
-              sub={`${d.kigyujtve_tetel} tétel kiadásra vár`}
-            />
-          </div>
-
-          {/* Idősor */}
-          <Card title="Bevételezés vs. kiadás – utolsó 30 nap (db)">
-            <TimeSeries data={d.idosor} />
-          </Card>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card title="Top termékek – eladás szerint">
-              <HBars
-                rows={d.top_termekek.map((t) => ({
-                  label: t.nev,
-                  value: t.eladott_db,
-                }))}
-                color="#0f172a"
-              />
-            </Card>
-
-            <Card title="Selejt / veszteség – ok szerint">
-              <HBars
-                rows={d.selejt.map((s) => ({
-                  label: SELEJT_OK_LABEL[s.ok as SelejtOk] ?? s.ok,
-                  value: s.db,
-                }))}
-                color="#dc2626"
-              />
-            </Card>
-
-            <Card title="Alacsony készlet (riasztás)">
-              {d.alacsony_keszlet.length === 0 ? (
-                <p className="text-sm text-slate-400">
-                  Nincs a minimum alá csökkent termék.
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-2 text-sm">
-                  {d.alacsony_keszlet.map((a) => (
-                    <li
-                      key={a.nev}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span className="truncate text-slate-700">{a.nev}</span>
-                      <span className="shrink-0 font-medium text-red-600">
-                        {a.keszlet} / {a.min_keszlet} db
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-
-            <Card title="Készletérték tárhelyenként">
-              {d.keszlet_helyenkent.length === 0 ? (
-                <p className="text-sm text-slate-400">Nincs betárolt készlet.</p>
-              ) : (
-                <ul className="flex flex-col gap-2 text-sm">
-                  {d.keszlet_helyenkent.map((h) => (
-                    <li
-                      key={h.teljes_kod}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span className="font-mono text-slate-700">
-                        {h.teljes_kod}
-                      </span>
-                      <span className="shrink-0 font-medium text-slate-900">
-                        {ft(h.ertek)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
