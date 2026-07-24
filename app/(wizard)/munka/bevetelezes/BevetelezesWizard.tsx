@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { KISZERELES_LABEL, type KiszerelesTipus } from '@/lib/products'
@@ -142,17 +143,23 @@ export function BevetelezesWizard({
         onCancel={cancel}
         footer={
           <div className="mx-auto flex max-w-md flex-col gap-2">
+            <Link
+              href="/munka/betarolas"
+              className="w-full rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              Tovább a betárolásra
+            </Link>
             <button
               type="button"
               onClick={reset}
-              className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
               Új bevételezés indítása
             </button>
             <button
               type="button"
               onClick={cancel}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-100"
             >
               Vissza a főoldalra
             </button>

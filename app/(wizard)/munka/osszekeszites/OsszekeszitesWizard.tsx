@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { KISZERELES_LABEL, type KiszerelesTipus } from '@/lib/products'
 import { ScanButton } from '@/components/ScanButton'
@@ -85,17 +86,29 @@ export function OsszekeszitesWizard({ items }: { items: BetaroltItem[] }) {
         onCancel={cancel}
         footer={
           <div className="mx-auto flex max-w-md flex-col gap-2">
+            {!isScrap && (
+              <Link
+                href="/munka/kiszallitas"
+                className="w-full rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-slate-800"
+              >
+                Tovább a kiszállításra
+              </Link>
+            )}
             <button
               type="button"
               onClick={reset}
-              className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+              className={`w-full rounded-xl px-4 py-3 text-sm font-semibold ${
+                isScrap
+                  ? 'bg-slate-900 text-white hover:bg-slate-800'
+                  : 'border border-slate-300 text-slate-700 hover:bg-slate-50'
+              }`}
             >
               Új összekészítés indítása
             </button>
             <button
               type="button"
               onClick={cancel}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-100"
             >
               Vissza a főoldalra
             </button>
