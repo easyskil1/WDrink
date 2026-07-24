@@ -344,7 +344,10 @@ export function Scanner({
   const engineLoading = engine === 'loading'
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black/90">
+    <div
+      className="fixed inset-x-0 top-0 z-[60] flex h-screen flex-col bg-black/90"
+      style={{ height: '100dvh' }}
+    >
       <div
         className="flex items-center justify-between px-4 pb-3 text-white"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
@@ -368,13 +371,13 @@ export function Scanner({
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-y-auto p-4">
         {mode === 'live' && liveSupported ? (
           <div className="flex w-full max-w-md flex-col items-center gap-4">
             <div className="relative w-full">
               <video
                 ref={videoRef}
-                className={`w-full rounded-lg bg-black ${camState === 'running' ? '' : 'hidden'}`}
+                className={`w-full rounded-lg bg-black object-contain ${camState === 'running' ? 'max-h-[65dvh]' : 'hidden'}`}
                 playsInline
                 muted
               />
