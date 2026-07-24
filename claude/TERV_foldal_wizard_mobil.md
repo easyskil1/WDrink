@@ -135,10 +135,15 @@ munkaválasztó, viewport + PWA manifest (orientation portrait), mind a 6 wizard
 - Post-login default DÖNTÉS: marad a munkaválasztó (`/`) mindenkinek; a
   statisztika egy koppintásra van a menüből. (proxy.ts már így irányít.)
 
-**Wizard finomítás (kész):** lánc-gombok a Kész képernyőkön a raktári sorrend
-szerint - Bevételezés -> "Tovább a betárolásra", Összekészítés -> "Tovább a
-kiszállításra" (selejtnél nem). (Több-tételes bevételezés a wizardben: tudatosan
-kihagyva, a terv egy-tétel/folyamat; a klasszikus űrlap kezel több tételt.)
+**Wizard finomítás (kész):**
+- Lánc-gombok a Kész képernyőkön a raktári sorrend szerint: Bevételezés ->
+  "Tovább a betárolásra", Összekészítés -> "Tovább a kiszállításra" (selejtnél nem).
+- Bevételezés: az 1. lap "Bevétel adatai" (beszállító + dátum), rajta "Egy tétel"
+  / "Több tétel" módválasztó. Több tétel mód: egymás utáni szkennelés (ugyanaz
+  újra = +1), élő lista soronkénti +/- és törlés, majd egy bizonylatba mentés.
+- iOS dátum-mező kilógás javítva (globális CSS, input[type=date] reset).
+- Lehetséges következő: folyamatos (kamera nyitva maradó) szkennelés a több-tétel
+  módhoz - most szkennelésenként újra kell nyitni a kamerát.
 
 **Klasszikus adminoldalak mobil-csiszolása (kész):** audit alapján az admin
 szekció nagyrészt már mobil-first volt. Javítva: `helyek` táblázat -> kártyás
