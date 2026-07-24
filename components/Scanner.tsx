@@ -345,7 +345,10 @@ export function Scanner({
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90">
-      <div className="flex items-center justify-between px-4 py-3 text-white">
+      <div
+        className="flex items-center justify-between px-4 pb-3 text-white"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+      >
         <span className="text-sm font-medium">
           {mode === 'live'
             ? continuous
