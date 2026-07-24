@@ -401,7 +401,10 @@ export function BevetelezesWizard({
               onScan={(text) => {
                 const hit = catalog.find((c) => c.vonalkod && c.vonalkod === text.trim())
                 if (hit) pickUnit(hit)
-                else setError(`Nincs ilyen vonalkódú termék: ${text}`)
+                else
+                  setError(
+                    `Nincs ilyen vonalkódú termék: ${text}. Előbb vedd fel a terméket (vagy a vonalkódját) a Termékek menüben.`
+                  )
               }}
             />
           </div>
@@ -538,7 +541,10 @@ export function BevetelezesWizard({
               onScan={(text) => {
                 const hit = catalog.find((c) => c.vonalkod && c.vonalkod === text.trim())
                 if (hit) addLine(hit)
-                else setError(`Nincs ilyen vonalkódú termék: ${text}`)
+                else
+                  setError(
+                    `Nincs ilyen vonalkódú termék: ${text}. Előbb vedd fel a terméket (vagy a vonalkódját) a Termékek menüben.`
+                  )
               }}
             />
           </div>
