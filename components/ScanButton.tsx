@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import dynamic from 'next/dynamic'
+import { unlockAudio } from './beep'
 
 const Scanner = dynamic(() => import('./Scanner').then((m) => m.Scanner), {
   ssr: false,
@@ -32,7 +33,10 @@ export function ScanButton({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          unlockAudio() // hang feloldása még a megnyitó gesztusból (iOS)
+          setOpen(true)
+        }}
         title={title}
         aria-label={title}
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition hover:bg-slate-50"
