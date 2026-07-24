@@ -133,7 +133,7 @@ export default async function ProductsPage({
         <p className="mt-4 text-sm text-red-600">Hiba: {error.message}</p>
       )}
 
-      {/* Lista – kártyák (mobile-first) */}
+      {/* Lista - kártyák (mobile-first) */}
       <ul className="mt-4 flex flex-col gap-3">
         {products.length === 0 && (
           <li className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-400">

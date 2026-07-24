@@ -11,7 +11,7 @@ const input =
  *
  * Az adott lépés termék/mennyiség kontextusát kapja (`productName`, `maxQty`),
  * és a modul saját selejt-actionjét hívja az `onSubmit`-en át. Siker esetén
- * `onSuccess(summary)` — a wizard ebből mutat záró összegzést.
+ * `onSuccess(summary)` - a wizard ebből mutat záró összegzést.
  */
 export function ScrapDialog({
   productName,

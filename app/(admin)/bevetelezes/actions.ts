@@ -49,5 +49,5 @@ export async function createBevetelezes(
 
   revalidatePath('/bevetelezes')
   revalidatePath('/betarolas')
-  return { sorszam: note?.sorszam ?? '—' }
+  return { sorszam: note?.sorszam ?? '-' }
 }

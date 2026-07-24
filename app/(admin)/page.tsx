@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 /**
- * Főoldal – kártyás munkaválasztó (mobil-first).
+ * Főoldal - kártyás munkaválasztó (mobil-first).
  *
  * Ez a napi munkafolyamatok gyors belépési pontja: 6 nagy kártya, mindegyik
  * egy modul wizard-flow-jának 1. lépésére navigál (`/munka/...`). A klasszikus,

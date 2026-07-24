@@ -1,8 +1,8 @@
 /*
- * Drink World – alap service worker (PWA telepíthetőség + gyorsabb/offline-tűrő
+ * Drink World - alap service worker (PWA telepíthetőség + gyorsabb/offline-tűrő
  * betöltés raktári wifin).
  *
- * ÓVATOS caching – hitelesített adat SOHA nem kerül cache-be:
+ * ÓVATOS caching - hitelesített adat SOHA nem kerül cache-be:
  *  - Immutable statikus assetek (`/_next/static/`, ikonok, szkenner WASM):
  *    cache-first (a Next.js hasheli a fájlneveket, így nem avulnak el).
  *  - Navigáció (HTML oldalbetöltés): network-first, hiba esetén offline oldal.
@@ -66,7 +66,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url)
   const sameOrigin = url.origin === self.location.origin
 
-  // Cross-origin (pl. Supabase) – ne nyúljunk hozzá.
+  // Cross-origin (pl. Supabase) - ne nyúljunk hozzá.
   if (!sameOrigin) return
 
   // Immutable statikus assetek → cache-first.

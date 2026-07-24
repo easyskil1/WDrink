@@ -1,7 +1,7 @@
 import { requireStaff } from '@/lib/auth'
 
 /**
- * Wizard route group layout – teljes képernyős, oldalsáv/fejléc nélkül.
+ * Wizard route group layout - teljes képernyős, oldalsáv/fejléc nélkül.
  *
  * Ugyanaz az auth-védelem, mint az (admin) csoportban (requireStaff), de a
  * mobil wizard-flow-k maguk töltik ki a képernyőt: egy képernyő = egy lépés,

@@ -63,7 +63,7 @@ function Row({ item }: { item: BetaroltItem }) {
         </span>
       </div>
       <p className="mt-0.5 text-xs text-slate-400">
-        {item.teljes_kod ? `Hely: ${item.teljes_kod}` : 'Hely: —'}
+        {item.teljes_kod ? `Hely: ${item.teljes_kod}` : 'Hely: -'}
         {item.lot_szam ? ` · LOT: ${item.lot_szam}` : ''}
         {item.lejarat_datum ? ` · lejárat: ${item.lejarat_datum}` : ''}
       </p>

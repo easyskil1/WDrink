@@ -151,7 +151,7 @@ export function SelejtezesWizard({ items }: { items: OnHandItem[] }) {
       onNext={nextForStep}
       nextLabel={step === 4 ? (submitting ? 'Mentés…' : 'Selejtezés') : step === 2 ? 'Tovább' : 'Tovább'}
     >
-      {/* 1. lépés – termék */}
+      {/* 1. lépés - termék */}
       {step === 1 && (
         <div className="flex flex-col gap-3">
           <StepTitle
@@ -198,7 +198,7 @@ export function SelejtezesWizard({ items }: { items: OnHandItem[] }) {
         </div>
       )}
 
-      {/* 2. lépés – tárhely (kihagyható) */}
+      {/* 2. lépés - tárhely (kihagyható) */}
       {step === 2 && item && (
         <div className="flex flex-1 flex-col">
           <StepTitle
@@ -238,7 +238,7 @@ export function SelejtezesWizard({ items }: { items: OnHandItem[] }) {
         </div>
       )}
 
-      {/* 3. lépés – mennyiség */}
+      {/* 3. lépés - mennyiség */}
       {step === 3 && item && (
         <div className="flex flex-1 flex-col">
           <StepTitle
@@ -251,7 +251,7 @@ export function SelejtezesWizard({ items }: { items: OnHandItem[] }) {
         </div>
       )}
 
-      {/* 4. lépés – indok */}
+      {/* 4. lépés - indok */}
       {step === 4 && item && (
         <div className="flex flex-col gap-3">
           <StepTitle title="Selejtezés indoka" hint="Kötelező megadni." />

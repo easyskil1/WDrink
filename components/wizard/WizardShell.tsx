@@ -26,7 +26,7 @@ export function WizardShell({
   children,
 }: {
   title: string
-  /** Mégse – megszakít, vissza a főoldali kártyaválasztóra. */
+  /** Mégse - megszakít, vissza a főoldali kártyaválasztóra. */
   onCancel: () => void
   /** Előző lépés. Ha nincs megadva, a Vissza gomb letiltva (1. lépésen). */
   onBack?: () => void
@@ -35,7 +35,7 @@ export function WizardShell({
   /** Tovább. Ha nincs megadva, a gomb letiltva (hiányos adat). */
   onNext?: () => void
   nextLabel?: string
-  /** Egyéni lábléc – felülírja az alap Vissza|Selejt|Tovább sort. */
+  /** Egyéni lábléc - felülírja az alap Vissza|Selejt|Tovább sort. */
   footer?: ReactNode
   children: ReactNode
 }) {

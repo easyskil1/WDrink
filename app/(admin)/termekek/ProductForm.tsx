@@ -135,7 +135,7 @@ export function ProductForm({
               defaultValue={initial?.gyarto_beszallito_id ?? ''}
               className={input}
             >
-              <option value="">—</option>
+              <option value="">-</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nev}
@@ -330,7 +330,7 @@ export function ProductForm({
                       }
                       className="rounded-md border border-slate-300 px-1 text-slate-900"
                     >
-                      <option value="">—</option>
+                      <option value="">-</option>
                       <option value="ml">ml</option>
                       <option value="l">l</option>
                     </select>

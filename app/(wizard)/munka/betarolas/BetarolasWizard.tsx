@@ -171,7 +171,7 @@ export function BetarolasWizard({
         }
         nextLabel={step === 3 ? (submitting ? 'Mentés…' : 'Betárolás') : 'Tovább'}
       >
-        {/* 1. lépés – puffer tétel */}
+        {/* 1. lépés - puffer tétel */}
         {step === 1 && (
           <div className="flex flex-col gap-3">
             <StepTitle
@@ -215,7 +215,7 @@ export function BetarolasWizard({
           </div>
         )}
 
-        {/* 2. lépés – mennyiség */}
+        {/* 2. lépés - mennyiség */}
         {step === 2 && item && (
           <div className="flex flex-1 flex-col">
             <StepTitle
@@ -228,7 +228,7 @@ export function BetarolasWizard({
           </div>
         )}
 
-        {/* 3. lépés – tárhely */}
+        {/* 3. lépés - tárhely */}
         {step === 3 && item && (
           <div className="flex flex-col gap-3">
             <StepTitle

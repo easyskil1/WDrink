@@ -94,7 +94,7 @@ export function AtrarolasWizard({
       lines: [
         `Termék: ${item.product_nev}`,
         `Mennyiség: ${qty} db`,
-        `Forrás: ${source?.teljes_kod ?? '—'}`,
+        `Forrás: ${source?.teljes_kod ?? '-'}`,
         `Cél: ${dest.teljes_kod}`,
       ],
     })
@@ -164,7 +164,7 @@ export function AtrarolasWizard({
         ? dest && !submitting
           ? submit
           : undefined
-        : undefined // 1–2 lépésen kiválasztással lépünk tovább
+        : undefined // 1-2 lépésen kiválasztással lépünk tovább
 
   return (
     <>
@@ -176,7 +176,7 @@ export function AtrarolasWizard({
         onNext={nextForStep}
         nextLabel={step === 4 ? (submitting ? 'Mentés…' : 'Átrárolás') : 'Tovább'}
       >
-        {/* 1. lépés – forrás tárhely */}
+        {/* 1. lépés - forrás tárhely */}
         {step === 1 && (
           <div className="flex flex-col gap-3">
             <StepTitle
@@ -204,7 +204,7 @@ export function AtrarolasWizard({
           </div>
         )}
 
-        {/* 2. lépés – termék a forrás helyen */}
+        {/* 2. lépés - termék a forrás helyen */}
         {step === 2 && source && (
           <div className="flex flex-col gap-3">
             <StepTitle
@@ -241,7 +241,7 @@ export function AtrarolasWizard({
           </div>
         )}
 
-        {/* 3. lépés – mennyiség */}
+        {/* 3. lépés - mennyiség */}
         {step === 3 && item && (
           <div className="flex flex-1 flex-col">
             <StepTitle
@@ -254,7 +254,7 @@ export function AtrarolasWizard({
           </div>
         )}
 
-        {/* 4. lépés – cél tárhely */}
+        {/* 4. lépés - cél tárhely */}
         {step === 4 && item && (
           <div className="flex flex-col gap-3">
             <StepTitle

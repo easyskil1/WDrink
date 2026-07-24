@@ -41,7 +41,7 @@ export default async function SuppliersPage() {
               <p className="font-medium text-slate-900">{s.nev}</p>
               <p className="text-sm text-slate-500">
                 {[s.adoszam, s.kapcsolattarto, s.cim].filter(Boolean).join(' · ') ||
-                  '—'}
+                  '-'}
               </p>
             </div>
             <div className="flex shrink-0 gap-3">

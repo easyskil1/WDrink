@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 
 /**
- * A `/sw.js` service worker regisztrálása – ez a feltétele a teljes PWA-
+ * A `/sw.js` service worker regisztrálása - ez a feltétele a teljes PWA-
  * viselkedésnek (Android telepíthetőség + offline fallback). Csak production
  * buildben regisztrálunk, hogy fejlesztés közben ne cache-eljen zavaróan.
  */

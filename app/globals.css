@@ -20,7 +20,7 @@
 }
 
 html {
-  /* Lehúzásos újratöltés (pull-to-refresh) letiltása – iOS-en az újratöltés
+  /* Lehúzásos újratöltés (pull-to-refresh) letiltása - iOS-en az újratöltés
      minden alkalommal újrakéri a kamera-engedélyt, ezt a véletlen gesztust így
      megelőzzük. A normál görgetést nem érinti. */
   overscroll-behavior-y: contain;

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Drink World Győr – Admin",
+  title: "Drink World Győr - Admin",
   description: "Ital-nagykereskedés logisztikai admin rendszer",
   manifest: "/manifest.webmanifest",
   icons: {

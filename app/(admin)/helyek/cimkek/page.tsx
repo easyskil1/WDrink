@@ -44,7 +44,7 @@ export default async function LabelsPage({
 
   return (
     <div>
-      {/* Vezérlők – nyomtatáskor elrejtve */}
+      {/* Vezérlők - nyomtatáskor elrejtve */}
       <div className="mb-6 flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">

@@ -155,12 +155,12 @@ export default async function DashboardPage() {
           </div>
 
           {/* Idősor */}
-          <Card title="Bevételezés vs. kiadás – utolsó 30 nap (db)">
+          <Card title="Bevételezés vs. kiadás - utolsó 30 nap (db)">
             <TimeSeries data={d.idosor} />
           </Card>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card title="Top termékek – eladás szerint">
+            <Card title="Top termékek - eladás szerint">
               <HBars
                 rows={d.top_termekek.map((t) => ({
                   label: t.nev,
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
               />
             </Card>
 
-            <Card title="Selejt / veszteség – ok szerint">
+            <Card title="Selejt / veszteség - ok szerint">
               <HBars
                 rows={d.selejt.map((s) => ({
                   label: SELEJT_OK_LABEL[s.ok as SelejtOk] ?? s.ok,

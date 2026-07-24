@@ -84,7 +84,7 @@ export default async function SzallitolevelPage({
 
   return (
     <div className="mx-auto max-w-3xl">
-      {/* Vezérlők – nyomtatáskor elrejtve */}
+      {/* Vezérlők - nyomtatáskor elrejtve */}
       <div className="mb-6 flex items-center justify-between print:hidden">
         <Link href="/kiadas" className="text-sm text-slate-500 hover:underline">
           ← Vissza a kiadáshoz
@@ -124,7 +124,7 @@ export default async function SzallitolevelPage({
         {/* Vevő */}
         <div className="py-4">
           <p className="text-xs uppercase tracking-wide text-slate-400">Vevő</p>
-          <p className="font-medium text-slate-900">{note.vevo_nev ?? '—'}</p>
+          <p className="font-medium text-slate-900">{note.vevo_nev ?? '-'}</p>
         </div>
 
         {/* Tételek */}
@@ -150,7 +150,7 @@ export default async function SzallitolevelPage({
                 return (
                   <tr key={i}>
                     <td className="py-2 pr-2 font-medium text-slate-900">
-                      {p?.nev ?? '—'}
+                      {p?.nev ?? '-'}
                       {p?.jovedeki && (
                         <span className="ml-1 text-xs text-amber-700">
                           ({p.jovedeki_termekkategoria
@@ -160,17 +160,17 @@ export default async function SzallitolevelPage({
                       )}
                     </td>
                     <td className="py-2 pr-2 text-slate-600">
-                      {u ? KISZERELES_LABEL[u.kiszereles] : '—'}
+                      {u ? KISZERELES_LABEL[u.kiszereles] : '-'}
                     </td>
-                    <td className="py-2 pr-2 text-slate-600">{p?.kn_kod ?? '—'}</td>
+                    <td className="py-2 pr-2 text-slate-600">{p?.kn_kod ?? '-'}</td>
                     <td className="py-2 pr-2 text-right text-slate-900">
                       {r.mennyiseg} db
                     </td>
                     <td className="py-2 pr-2 text-right text-slate-600">
-                      {p?.alkoholtartalom != null ? `${p.alkoholtartalom}%` : '—'}
+                      {p?.alkoholtartalom != null ? `${p.alkoholtartalom}%` : '-'}
                     </td>
                     <td className="py-2 text-right text-slate-600">
-                      {liter != null ? `${liter} l` : '—'}
+                      {liter != null ? `${liter} l` : '-'}
                     </td>
                   </tr>
                 )

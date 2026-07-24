@@ -1,11 +1,11 @@
 import type { MetadataRoute } from 'next'
 
-// Web App Manifest – telepíthető PWA (kezdőképernyőre adható, standalone).
+// Web App Manifest - telepíthető PWA (kezdőképernyőre adható, standalone).
 // Standalone módban iOS Safari megjegyzi a kamera-engedélyt → nincs
 // oldalbetöltésenkénti újrakérdezés a szkennernél.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Drink World Győr – Admin',
+    name: 'Drink World Győr - Admin',
     short_name: 'Drink World',
     description: 'Ital-nagykereskedés logisztikai admin rendszer',
     start_url: '/',

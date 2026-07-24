@@ -73,7 +73,7 @@ export function KiszallitasWizard({
       noteId: res.noteId ?? '',
       lines: [
         `Vevő: ${vevo.trim()}`,
-        `Dátum: ${datum || '—'}`,
+        `Dátum: ${datum || '-'}`,
         `Tételek: ${selectedItems.length} db`,
       ],
     })
@@ -170,7 +170,7 @@ export function KiszallitasWizard({
       }
       nextLabel={step === 2 ? (submitting ? 'Mentés…' : 'Kiadás rögzítése') : 'Tovább'}
     >
-      {/* 1. lépés – gyűjtött tételek áttekintése */}
+      {/* 1. lépés - gyűjtött tételek áttekintése */}
       {step === 1 && (
         <div className="flex flex-col gap-3">
           <StepTitle
@@ -216,7 +216,7 @@ export function KiszallitasWizard({
         </div>
       )}
 
-      {/* 2. lépés – megerősítés (vevő + dátum) */}
+      {/* 2. lépés - megerősítés (vevő + dátum) */}
       {step === 2 && (
         <div className="flex flex-col gap-4">
           <StepTitle

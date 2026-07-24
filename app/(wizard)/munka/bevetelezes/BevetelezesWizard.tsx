@@ -210,7 +210,7 @@ export function BevetelezesWizard({
       onNext={nextForStep}
       nextLabel={step === 4 ? (submitting ? 'Mentés…' : 'Bevételezés') : 'Tovább'}
     >
-      {/* 1. lépés – beszállító + dátum */}
+      {/* 1. lépés - beszállító + dátum */}
       {step === 1 && (
         <div className="flex flex-col gap-4">
           <StepTitle
@@ -224,7 +224,7 @@ export function BevetelezesWizard({
               onChange={(e) => setSupplierId(e.target.value)}
               className={inputCls}
             >
-              <option value="">— Beszállító nélkül —</option>
+              <option value="">- Beszállító nélkül -</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nev}
@@ -244,7 +244,7 @@ export function BevetelezesWizard({
         </div>
       )}
 
-      {/* 2. lépés – termék */}
+      {/* 2. lépés - termék */}
       {step === 2 && (
         <div className="flex flex-col gap-3">
           <StepTitle
@@ -289,7 +289,7 @@ export function BevetelezesWizard({
         </div>
       )}
 
-      {/* 3. lépés – mennyiség + LOT + lejárat */}
+      {/* 3. lépés - mennyiség + LOT + lejárat */}
       {step === 3 && unit && (
         <div className="flex flex-col gap-5">
           <StepTitle
@@ -350,7 +350,7 @@ export function BevetelezesWizard({
         </div>
       )}
 
-      {/* 4. lépés – szállítólevél fotó */}
+      {/* 4. lépés - szállítólevél fotó */}
       {step === 4 && unit && (
         <div className="flex flex-col gap-4">
           <StepTitle

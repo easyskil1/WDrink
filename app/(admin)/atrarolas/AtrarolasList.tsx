@@ -57,7 +57,7 @@ function Row({
       <p className="mt-0.5 text-xs text-slate-400">
         Jelenlegi hely:{' '}
         <span className="font-medium text-slate-600">
-          {item.teljes_kod ?? '—'}
+          {item.teljes_kod ?? '-'}
         </span>
         {item.lot_szam ? ` · LOT: ${item.lot_szam}` : ''}
         {item.lejarat_datum ? ` · lejárat: ${item.lejarat_datum}` : ''}
@@ -72,7 +72,7 @@ function Row({
               onChange={(e) => setCelId(e.target.value)}
               className={input}
             >
-              <option value="">— válassz —</option>
+              <option value="">- válassz -</option>
               {targets.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.teljes_kod}

@@ -143,7 +143,7 @@ export function BevetelezesForm({
               onChange={(e) => setSupplierId(e.target.value)}
               className={input}
             >
-              <option value="">—</option>
+              <option value="">-</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nev}
@@ -236,7 +236,7 @@ export function BevetelezesForm({
                       onChange={(e) => patch(r.key, { unit_id: e.target.value })}
                       className={input}
                     >
-                      <option value="">— válassz —</option>
+                      <option value="">- válassz -</option>
                       {catalog.map((c) => (
                         <option key={c.unit_id} value={c.unit_id}>
                           {c.product_nev} ·{' '}
@@ -292,7 +292,7 @@ export function BevetelezesForm({
                     {menny} × {KISZERELES_LABEL[unit.kiszereles as KiszerelesTipus]}
                     {' = '}
                     <span className="font-semibold">{alap} db</span> (alapegység)
-                    {isMulti && ' — biztosan ennyi?'}
+                    {isMulti && ' - biztosan ennyi?'}
                   </div>
                 )}
 

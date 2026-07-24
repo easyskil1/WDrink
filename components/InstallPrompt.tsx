@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Egyszeri, elutasítható telepítési segédablak (PWA – kezdőképernyőre adás).
+ * Egyszeri, elutasítható telepítési segédablak (PWA - kezdőképernyőre adás).
  *
  * Platformfüggő útmutató:
  *  - iOS Safari: Megosztás → Főképernyőhöz adás (nincs automatikus prompt).
@@ -14,14 +14,14 @@ import { useEffect, useState } from 'react'
  *
  * Megjelenés-vezérlés:
  *  - Ha az app már telepítve fut (standalone) → nem jelenik meg.
- *  - Munkamenetenként egyszer (sessionStorage), hogy ne pattanjon fel újra.
+ *  - Minden oldalbetöltéskor felugrik (frissítés után is), amíg a felhasználó
+ *    be nem pipálja a „Ne jelenjen meg többet” opciót.
  *  - „Ne jelenjen meg többet” pipa → tartós elrejtés (localStorage).
  */
 
 type Platform = 'ios-safari' | 'ios-other' | 'android' | 'desktop'
 
 const HIDE_KEY = 'dw-install-hide'
-const SEEN_KEY = 'dw-install-seen'
 
 type BIPEvent = Event & {
   prompt: () => Promise<void>
@@ -74,7 +74,6 @@ export function InstallPrompt() {
   useEffect(() => {
     if (isStandalone()) return
     if (localStorage.getItem(HIDE_KEY) === '1') return
-    if (sessionStorage.getItem(SEEN_KEY) === '1') return
 
     const onBIP = (e: Event) => {
       e.preventDefault()
@@ -93,7 +92,9 @@ export function InstallPrompt() {
   }, [])
 
   function close() {
-    sessionStorage.setItem(SEEN_KEY, '1')
+    // Csak akkor rejtjük el tartósan, ha a felhasználó bepipálta. Egyébként
+    // oldalfrissítés után újra megjelenik (a munkamenet-őrt szándékosan nem
+    // használjuk).
     if (dontShow) localStorage.setItem(HIDE_KEY, '1')
     setVisible(false)
   }
@@ -138,7 +139,7 @@ export function InstallPrompt() {
         </div>
 
         <p className="mt-3 text-sm text-slate-500">
-          Így böngészősáv nélkül, teljes képernyőn, app-szerűen nyílik — és a
+          Így böngészősáv nélkül, teljes képernyőn, app-szerűen nyílik, és a
           kamera-engedélyt is megjegyzi a szkenneléshez.
         </p>
 
@@ -175,7 +176,7 @@ export function InstallPrompt() {
             <div className="flex flex-col gap-2">
               {deferred ? (
                 <p>
-                  Koppints lent a <b>Telepítés</b> gombra — a rendszer felteszi a
+                  Koppints lent a <b>Telepítés</b> gombra - a rendszer felteszi a
                   kezdőképernyőre.
                 </p>
               ) : (

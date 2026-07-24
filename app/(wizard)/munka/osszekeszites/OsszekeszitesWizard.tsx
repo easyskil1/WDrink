@@ -71,7 +71,7 @@ export function OsszekeszitesWizard({ items }: { items: BetaroltItem[] }) {
       lines: [
         `Termék: ${item.product_nev}`,
         `Mennyiség: ${qty} db`,
-        `Tárhely: ${item.teljes_kod ?? '—'}`,
+        `Tárhely: ${item.teljes_kod ?? '-'}`,
       ],
     })
   }
@@ -152,7 +152,7 @@ export function OsszekeszitesWizard({ items }: { items: BetaroltItem[] }) {
         onNext={nextForStep}
         nextLabel={step === 3 ? (submitting ? 'Mentés…' : 'Összekészítés') : 'Tovább'}
       >
-        {/* 1. lépés – tétel (FEFO ajánlással) */}
+        {/* 1. lépés - tétel (FEFO ajánlással) */}
         {step === 1 && (
           <div className="flex flex-col gap-3">
             <StepTitle
@@ -206,7 +206,7 @@ export function OsszekeszitesWizard({ items }: { items: BetaroltItem[] }) {
           </div>
         )}
 
-        {/* 2. lépés – tárhely megerősítése */}
+        {/* 2. lépés - tárhely megerősítése */}
         {step === 2 && item && (
           <div className="flex flex-1 flex-col">
             <StepTitle
@@ -217,7 +217,7 @@ export function OsszekeszitesWizard({ items }: { items: BetaroltItem[] }) {
               <div>
                 <p className="text-sm text-slate-500">Elvárt tárhely</p>
                 <p className="mt-1 font-mono text-2xl font-bold text-slate-900">
-                  {item.teljes_kod ?? '—'}
+                  {item.teljes_kod ?? '-'}
                 </p>
               </div>
               {locConfirmed ? (
@@ -233,7 +233,7 @@ export function OsszekeszitesWizard({ items }: { items: BetaroltItem[] }) {
                       setLocConfirmed(true)
                       setError(null)
                     } else {
-                      setError(`Ez nem a várt tárhely (${item.teljes_kod ?? '—'}): ${text}`)
+                      setError(`Ez nem a várt tárhely (${item.teljes_kod ?? '-'}): ${text}`)
                     }
                   }}
                 />
@@ -243,7 +243,7 @@ export function OsszekeszitesWizard({ items }: { items: BetaroltItem[] }) {
           </div>
         )}
 
-        {/* 3. lépés – mennyiség */}
+        {/* 3. lépés - mennyiség */}
         {step === 3 && item && (
           <div className="flex flex-1 flex-col">
             <StepTitle

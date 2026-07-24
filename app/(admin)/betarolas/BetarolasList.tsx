@@ -64,7 +64,7 @@ function Row({
         </span>
       </div>
       <p className="mt-0.5 text-xs text-slate-400">
-        {item.lot_szam ? `LOT: ${item.lot_szam}` : 'LOT: —'}
+        {item.lot_szam ? `LOT: ${item.lot_szam}` : 'LOT: -'}
         {item.lejarat_datum ? ` · lejárat: ${item.lejarat_datum}` : ''}
       </p>
 
@@ -99,7 +99,7 @@ function Row({
                 onChange={(e) => setLocationId(e.target.value)}
                 className={input}
               >
-                <option value="">— válassz —</option>
+                <option value="">- válassz -</option>
                 {locations.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.teljes_kod}

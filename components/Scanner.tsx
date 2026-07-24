@@ -6,16 +6,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * Közös vonalkód/QR olvasó.
  *
  * Motor (a `barcode-detector` ponyfill mintájára):
- *  - **Natív `BarcodeDetector`**, ha a böngésző támogatja (Android Chrome) –
+ *  - **Natív `BarcodeDetector`**, ha a böngésző támogatja (Android Chrome) -
  *    azonnali, nincs WASM letöltés.
  *  - **ZXing-C++ WASM fallback** (iPhone Safari), dinamikusan importálva, hogy
  *    az Androidos userek ne fizessék meg a bundle-méretet. A `.wasm` binárist
  *    **self-hostoljuk** (`/public/zxing_reader.wasm`), így raktári wifin sincs
  *    külső CDN-függés.
  *
- * Kamera indítás – FONTOS iOS Chrome miatt:
+ * Kamera indítás - FONTOS iOS Chrome miatt:
  *  A `getUserMedia`-t **közvetlen felhasználói koppintásból** ("Kamera indítása"
- *  gomb) hívjuk. iOS Chrome (WKWebView) gesztus nélkül – pl. `useEffect`-ből –
+ *  gomb) hívjuk. iOS Chrome (WKWebView) gesztus nélkül - pl. `useEffect`-ből -
  *  elutasítja a kamerát. Ezért NEM automatikusan indítjuk élő módban, hanem
  *  gombra. Ott, ahol a böngésző úgyis engedi (Android, iOS Safari, asztali),
  *  a gomb egyszeri koppintás; a fotó-mód csak kézi, másodlagos opció.
@@ -45,7 +45,7 @@ const FORMATS = [
 
 // Van-e egyáltalán kamera-API (getUserMedia)? Secure contexthez (HTTPS) kötött.
 // FONTOS: iOS Chrome/Firefox/Edge NEM teszi elérhetővé (`navigator.mediaDevices`
-// undefined) – ott élő kamera nincs, csak Safariban vagy telepített PWA-ban.
+// undefined) - ott élő kamera nincs, csak Safariban vagy telepített PWA-ban.
 function hasCameraApi(): boolean {
   return (
     typeof navigator !== 'undefined' &&
@@ -54,7 +54,7 @@ function hasCameraApi(): boolean {
 }
 
 // iOS-en Safarin/PWA-n kívüli böngésző (Chrome/Firefox/Edge for iOS)? Ott nincs
-// élő kamera – Safarit kell ajánlani.
+// élő kamera - Safarit kell ajánlani.
 function isIosThirdPartyBrowser(): boolean {
   if (typeof navigator === 'undefined') return false
   return /CriOS|FxiOS|EdgiOS/.test(navigator.userAgent || '')
@@ -92,7 +92,7 @@ async function createDetector(): Promise<{ detector: DetectorLike; engine: 'nati
       const detector = new NativeBD(formats.length ? { formats } : undefined)
       return { detector, engine: 'native' }
     } catch {
-      // A natív motor mégsem használható – WASM-ra esünk vissza.
+      // A natív motor mégsem használható - WASM-ra esünk vissza.
     }
   }
 
@@ -225,7 +225,7 @@ export function Scanner({
     try {
       await video.play()
     } catch {
-      // Egyes böngészők a play()-t megtagadhatják – a stream ettől még mehet.
+      // Egyes böngészők a play()-t megtagadhatják - a stream ettől még mehet.
     }
 
     setCamState('running')
@@ -245,7 +245,7 @@ export function Scanner({
             return
           }
         } catch {
-          // Átmeneti dekódolási hiba – nem kritikus, megyünk tovább.
+          // Átmeneti dekódolási hiba - nem kritikus, megyünk tovább.
         }
       }
       rafRef.current = requestAnimationFrame(loop)
@@ -256,7 +256,7 @@ export function Scanner({
   // Leállítás a komponens bezárásakor.
   useEffect(() => stopCamera, [stopCamera])
 
-  // Auto-indítás: amint kész a motor és van élő kamera, indul magától – nem kell
+  // Auto-indítás: amint kész a motor és van élő kamera, indul magától - nem kell
   // külön "Kamera indítása". (A böngésző-engedély megadása után prompt nélkül
   // fut. Ha mégis elbukik, a gomb "Újra: kamera indítása"-ként marad meg.)
   // queueMicrotask: hogy ne szinkron setState történjen az effekt törzsében.
@@ -377,7 +377,7 @@ export function Scanner({
               {inAppBrowserName() ? (
                 <>
                   Úgy tűnik, ezt az oldalt a <b>{inAppBrowserName()}</b> beépített
-                  böngészőjében nyitottad meg — abban nincs élő kamera. Nyisd meg{' '}
+                  böngészőjében nyitottad meg - abban nincs élő kamera. Nyisd meg{' '}
                   <b>Safariban</b> (jobb alul a megosztás ikon → „Megnyitás
                   Safariban”).
                 </>
@@ -389,7 +389,7 @@ export function Scanner({
               ) : (
                 <>
                   Nem érhető el az élő kamera. iPhone-on Safariban ezt gyakran a{' '}
-                  <b>Zárt mód (Lockdown Mode)</b> okozza — vedd ki ezt az oldalt a
+                  <b>Zárt mód (Lockdown Mode)</b> okozza - vedd ki ezt az oldalt a
                   Zárt mód alól: <b>aA</b> gomb a címsorban → <b>Weboldal
                   beállításai</b> → <b>Zárt mód</b> KI, majd töltsd újra. (Ellenőrizd
                   a Képernyőidő kamera-korlátozását is.) Addig használhatod a fotós
