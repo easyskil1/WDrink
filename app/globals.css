@@ -67,6 +67,14 @@ body {
   }
 }
 
+/* iOS Safari: az input[type=date] nem tartja a box-sizing:border-box-ot, ezért
+   w-full mellett is kilóg a konténerből. Ez a reset a helyén tartja. */
+input[type='date'] {
+  -webkit-appearance: none;
+  appearance: none;
+  max-width: 100%;
+}
+
 /* ---- Raktári hely címkék (QR) ---- */
 .labels-grid {
   display: grid;
