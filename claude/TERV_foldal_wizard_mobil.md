@@ -135,6 +135,11 @@ munkaválasztó, viewport + PWA manifest (orientation portrait), mind a 6 wizard
 - Post-login default DÖNTÉS: marad a munkaválasztó (`/`) mindenkinek; a
   statisztika egy koppintásra van a menüből. (proxy.ts már így irányít.)
 
+**Wizard finomítás (kész):** lánc-gombok a Kész képernyőkön a raktári sorrend
+szerint - Bevételezés -> "Tovább a betárolásra", Összekészítés -> "Tovább a
+kiszállításra" (selejtnél nem). (Több-tételes bevételezés a wizardben: tudatosan
+kihagyva, a terv egy-tétel/folyamat; a klasszikus űrlap kezel több tételt.)
+
 **Klasszikus adminoldalak mobil-csiszolása (kész):** audit alapján az admin
 szekció nagyrészt már mobil-first volt. Javítva: `helyek` táblázat -> kártyás
 lista; globális `main`/`header` padding `p-4 sm:p-6`; `ProductForm` Űrtartalom
