@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
  * Közös vonalkód/QR olvasó.
@@ -13,12 +13,12 @@ import { useEffect, useRef, useState } from 'react'
  *    **self-hostoljuk** (`/public/zxing_reader.wasm`), így raktári wifin sincs
  *    külső CDN-függés.
  *
- * Két beolvasási mód:
- *  - "live": folyamatos kamera-stream (getUserMedia) – asztali gépen, Androidon
- *    és iOS Safariban a legkényelmesebb.
- *  - "photo": natív fényképezés (<input capture>) + a képből dekódolás – ott,
- *    ahol az élő kamera nem érhető el (pl. iOS Chrome). Ha a live nem indul,
- *    ide esünk vissza.
+ * Kamera indítás – FONTOS iOS Chrome miatt:
+ *  A `getUserMedia`-t **közvetlen felhasználói koppintásból** ("Kamera indítása"
+ *  gomb) hívjuk. iOS Chrome (WKWebView) gesztus nélkül – pl. `useEffect`-ből –
+ *  elutasítja a kamerát. Ezért NEM automatikusan indítjuk élő módban, hanem
+ *  gombra. Ott, ahol a böngésző úgyis engedi (Android, iOS Safari, asztali),
+ *  a gomb egyszeri koppintás; a fotó-mód csak kézi, másodlagos opció.
  */
 
 type DetectedCode = { rawValue: string; format?: string }
@@ -43,16 +43,16 @@ const FORMATS = [
   'pdf417',
 ] as const
 
-// Natív-preferáló detektor létrehozása. Androidon a beépített motort adja
-// vissza (nincs letöltés), egyébként a self-hostolt WASM ponyfillt.
-// Van-e élő kamera (getUserMedia)? iOS Chrome-ban pl. nincs, ott fotó-mód kell.
-function hasLiveCamera(): boolean {
+// Van-e egyáltalán kamera-API (getUserMedia)? Secure contexthez (HTTPS) kötött.
+function hasCameraApi(): boolean {
   return (
     typeof navigator !== 'undefined' &&
     typeof navigator.mediaDevices?.getUserMedia === 'function'
   )
 }
 
+// Natív-preferáló detektor létrehozása. Androidon a beépített motort adja
+// vissza (nincs letöltés), egyébként a self-hostolt WASM ponyfillt.
 async function createDetector(): Promise<{ detector: DetectorLike; engine: 'native' | 'wasm' }> {
   const NativeBD = (globalThis as unknown as { BarcodeDetector?: unknown }).BarcodeDetector as
     | (new (opts?: { formats?: readonly string[] }) => DetectorLike)
@@ -83,6 +83,21 @@ async function createDetector(): Promise<{ detector: DetectorLike; engine: 'nati
   return { detector, engine: 'wasm' }
 }
 
+// Emberi hibaüzenet a getUserMedia hibákra.
+function describeCameraError(e: unknown): string {
+  const name = (e as { name?: string })?.name
+  if (name === 'NotAllowedError' || name === 'SecurityError') {
+    return 'A kamera engedélyezése le van tiltva. Engedélyezd a kamera-hozzáférést a böngésző beállításaiban, majd próbáld újra.'
+  }
+  if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+    return 'Nem található kamera ezen az eszközön.'
+  }
+  if (name === 'NotReadableError') {
+    return 'A kamerát egy másik alkalmazás használja. Zárd be, majd próbáld újra.'
+  }
+  return 'A kamera nem indult el. Próbáld újra, vagy olvass be fotóval.'
+}
+
 export function Scanner({
   onResult,
   onClose,
@@ -93,23 +108,30 @@ export function Scanner({
   const videoRef = useRef<HTMLVideoElement>(null)
   const detectorRef = useRef<DetectorLike | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const rafRef = useRef(0)
+  const scanningRef = useRef(false)
   const doneRef = useRef(false)
-  // Kezdőmód: ha nincs getUserMedia (pl. iOS Chrome), rögtön fotó-mód – így nem
-  // kell az effekt törzsében setState-elni (cascading render).
-  const [mode, setMode] = useState<'live' | 'photo'>(() =>
-    hasLiveCamera() ? 'live' : 'photo'
-  )
+
+  const [mode, setMode] = useState<'live' | 'photo'>('live')
   const [engine, setEngine] = useState<'native' | 'wasm' | 'loading'>('loading')
+  // A kamera-stream állapota: idle = még nem indítottuk, starting = indul,
+  // running = fut, error = hiba (üzenettel).
+  const [camState, setCamState] = useState<'idle' | 'starting' | 'running' | 'error'>('idle')
+  const [camError, setCamError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [decoding, setDecoding] = useState(false)
 
   // Egyszeri találat-kezelés: leáll, és felfelé jelez.
-  function emit(text: string) {
-    if (doneRef.current) return
-    doneRef.current = true
-    if (navigator.vibrate) navigator.vibrate(60)
-    onResult(text)
-  }
+  const emit = useCallback(
+    (text: string) => {
+      if (doneRef.current) return
+      doneRef.current = true
+      scanningRef.current = false
+      if (navigator.vibrate) navigator.vibrate(60)
+      onResult(text)
+    },
+    [onResult]
+  )
 
   // Detektor motor betöltése egyszer, mount-kor.
   useEffect(() => {
@@ -121,60 +143,76 @@ export function Scanner({
         setEngine(engine)
       })
       .catch(() => {
-        if (!cancelled) setError('A vonalkód-motor betöltése nem sikerült.')
+        if (!cancelled) setEngine('wasm') // hagyjuk, hogy a fotó/retry úton kiderüljön a valódi hiba
       })
     return () => {
       cancelled = true
     }
   }, [])
 
-  // Élő kamera + folyamatos felismerő ciklus (csak live módban, ha kész a motor).
-  useEffect(() => {
-    if (mode !== 'live' || engine === 'loading') return
+  const stopCamera = useCallback(() => {
+    scanningRef.current = false
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = 0
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+  }, [])
 
-    // getUserMedia hiányát a kezdőmód már fotó-módra állította; itt csak élő
-    // kamerával futunk tovább.
-    if (!hasLiveCamera()) return
+  // Élő kamera indítása. FONTOS: közvetlen user-gesztusból (gomb onClick) hívjuk,
+  // az első valódi művelet a getUserMedia legyen (semmi await előtte), különben
+  // iOS Chrome elveszti a gesztust és megtagadja a kamerát.
+  const startCamera = useCallback(async () => {
+    if (!hasCameraApi()) {
+      setMode('photo')
+      return
+    }
+    stopCamera()
+    doneRef.current = false
+    setCamState('starting')
+    setCamError(null)
 
-    let cancelled = false
-    let rafId = 0
-    let lastScanAt = 0
-    const video = videoRef.current
-
-    async function start() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        })
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop())
-          return
-        }
-        streamRef.current = stream
-        if (!video) return
-        video.srcObject = stream
-        await video.play()
-        rafId = requestAnimationFrame(loop)
-      } catch {
-        // Az élő kamera nem indult – fotó-móddal még mehet.
-        if (!cancelled) setMode('photo')
-      }
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      })
+    } catch (e) {
+      setCamState('error')
+      setCamError(describeCameraError(e))
+      return
     }
 
-    async function loop(now: number) {
-      if (cancelled) return
+    streamRef.current = stream
+    const video = videoRef.current
+    if (!video) {
+      stopCamera()
+      return
+    }
+    video.srcObject = stream
+    try {
+      await video.play()
+    } catch {
+      // Egyes böngészők a play()-t megtagadhatják – a stream ettől még mehet.
+    }
+
+    setCamState('running')
+    scanningRef.current = true
+
+    let lastScanAt = 0
+    const loop = async (now: number) => {
+      if (!scanningRef.current) return
       const detector = detectorRef.current
       // ~9 kép/mp: folyamatos, de nem CPU-zabáló.
-      if (detector && video && video.readyState >= 2 && now - lastScanAt > 110) {
+      if (detector && video.readyState >= 2 && now - lastScanAt > 110) {
         lastScanAt = now
         try {
           const codes = await detector.detect(video)
-          if (codes.length > 0 && !cancelled) {
+          if (codes.length > 0 && scanningRef.current) {
             emit(codes[0].rawValue)
             return
           }
@@ -182,21 +220,15 @@ export function Scanner({
           // Átmeneti dekódolási hiba – nem kritikus, megyünk tovább.
         }
       }
-      rafId = requestAnimationFrame(loop)
+      rafRef.current = requestAnimationFrame(loop)
     }
+    rafRef.current = requestAnimationFrame(loop)
+  }, [emit, stopCamera])
 
-    start()
+  // Leállítás a komponens bezárásakor.
+  useEffect(() => stopCamera, [stopCamera])
 
-    return () => {
-      cancelled = true
-      if (rafId) cancelAnimationFrame(rafId)
-      streamRef.current?.getTracks().forEach((t) => t.stop())
-      streamRef.current = null
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, engine])
-
-  // Fotóból dekódolás (photo mód).
+  // Fotóból dekódolás (kézi, másodlagos mód).
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = '' // ugyanaz a fájl újra kiválasztható legyen
@@ -229,15 +261,20 @@ export function Scanner({
     }
   }
 
+  const engineLoading = engine === 'loading'
+
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90">
       <div className="flex items-center justify-between px-4 py-3 text-white">
         <span className="text-sm font-medium">
-          {mode === 'live' ? 'Beolvasás…' : 'Beolvasás fotóval'}
+          {mode === 'live' ? 'Beolvasás' : 'Beolvasás fotóval'}
         </span>
         <button
           type="button"
-          onClick={onClose}
+          onClick={() => {
+            stopCamera()
+            onClose()
+          }}
           className="rounded-md bg-white/10 px-3 py-1.5 text-sm font-medium hover:bg-white/20"
         >
           Bezárás
@@ -246,29 +283,52 @@ export function Scanner({
 
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
         {mode === 'live' ? (
-          <>
-            <div className="relative w-full max-w-md">
+          <div className="flex w-full max-w-md flex-col items-center gap-4">
+            <div className="relative w-full">
               <video
                 ref={videoRef}
-                className="w-full rounded-lg bg-black"
+                className={`w-full rounded-lg bg-black ${camState === 'running' ? '' : 'hidden'}`}
                 playsInline
                 muted
               />
-              <div className="pointer-events-none absolute inset-0 m-8 rounded-lg border-2 border-white/70" />
-              {engine === 'loading' && (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-white/80">
-                  Motor betöltése…
-                </div>
+              {camState === 'running' && (
+                <div className="pointer-events-none absolute inset-0 m-8 rounded-lg border-2 border-white/70" />
               )}
             </div>
+
+            {camState !== 'running' && (
+              <div className="flex w-full flex-col items-center gap-3 text-center">
+                {camState === 'error' && camError && (
+                  <p className="text-sm text-red-300">{camError}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  disabled={engineLoading || camState === 'starting'}
+                  className="w-full rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
+                >
+                  {engineLoading
+                    ? 'Motor betöltése…'
+                    : camState === 'starting'
+                      ? 'Kamera indítása…'
+                      : camState === 'error'
+                        ? 'Újra: kamera indítása'
+                        : 'Kamera indítása'}
+                </button>
+              </div>
+            )}
+
             <button
               type="button"
-              onClick={() => setMode('photo')}
+              onClick={() => {
+                stopCamera()
+                setMode('photo')
+              }}
               className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
             >
-              Nem indul a kamera? Olvasás fotóval
+              Inkább fotóval olvasok be
             </button>
-          </>
+          </div>
         ) : (
           <div className="flex w-full max-w-md flex-col items-center gap-4 text-center">
             {error && <p className="text-sm text-red-300">{error}</p>}
@@ -282,15 +342,25 @@ export function Scanner({
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                disabled={decoding || engine === 'loading'}
+                disabled={decoding || engineLoading}
                 onChange={handleFile}
               />
             </label>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null)
+                setMode('live')
+              }}
+              className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+            >
+              Vissza az élő kamerához
+            </button>
           </div>
         )}
       </div>
 
-      {mode === 'live' && (
+      {mode === 'live' && camState === 'running' && (
         <p className="px-4 pb-6 text-center text-xs text-white/60">
           Irányítsd a kamerát a vonalkódra vagy QR kódra.
         </p>
