@@ -135,7 +135,13 @@ munkaválasztó, viewport + PWA manifest (orientation portrait), mind a 6 wizard
 - Post-login default DÖNTÉS: marad a munkaválasztó (`/`) mindenkinek; a
   statisztika egy koppintásra van a menüből. (proxy.ts már így irányít.)
 
+**Klasszikus adminoldalak mobil-csiszolása (kész):** audit alapján az admin
+szekció nagyrészt már mobil-first volt. Javítva: `helyek` táblázat -> kártyás
+lista; globális `main`/`header` padding `p-4 sm:p-6`; `ProductForm` Űrtartalom
+cella `col-span-2 sm:col-span-1`. A többi oldal (beszállítók, felhasználók,
+cégadatok, kiadás, bevételezés-űrlap) rendben volt.
+
 **Még hátra:**
 - Eszközön tesztelés (Android/iOS): telepítés, fullscreen, orientáció-zár,
   kamera a wizardökben, offline fallback.
-- Klasszikus adminoldalak mobil-csiszolása (folyamatban).
+- Opcionális PWA-plusz: iOS indítóképernyők (splash) - nagy képkészlet, csak ha kell.

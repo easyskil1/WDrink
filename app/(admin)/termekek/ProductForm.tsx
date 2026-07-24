@@ -310,7 +310,7 @@ export function ProductForm({
                   />
                 </label>
 
-                <label className="flex flex-col gap-1">
+                <label className="col-span-2 flex flex-col gap-1 sm:col-span-1">
                   <span className={fieldLabel}>Űrtartalom</span>
                   <div className="flex gap-1">
                     <input

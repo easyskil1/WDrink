@@ -25,7 +25,7 @@ export default async function AdminLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header
-          className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-6 pb-3 print:hidden"
+          className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-4 pb-3 sm:px-6 print:hidden"
           style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
         >
           <div className="flex items-center gap-3 md:hidden">
@@ -55,7 +55,7 @@ export default async function AdminLayout({
         </header>
 
         <main
-          className="flex-1 bg-slate-50 p-6"
+          className="flex-1 bg-slate-50 p-4 sm:p-6"
           style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
         >
           {children}
