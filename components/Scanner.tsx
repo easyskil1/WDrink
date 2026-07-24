@@ -73,24 +73,6 @@ function inAppBrowserName(): string | null {
   return null
 }
 
-// Teljes diagnosztika – segít eldönteni, miért nincs kamera (böngésző/kontextus).
-function cameraDiagnostics(): string {
-  if (typeof navigator === 'undefined') return 'nincs navigator'
-  const md = navigator.mediaDevices as MediaDevices | undefined
-  const w = typeof window !== 'undefined' ? window : undefined
-  return [
-    `secureContext: ${w ? String(w.isSecureContext) : '?'}`,
-    `iframe: ${w ? String(w.self !== w.top) : '?'}`,
-    `standalone(PWA): ${
-      w && 'standalone' in w.navigator ? String((w.navigator as { standalone?: boolean }).standalone) : '?'
-    }`,
-    `mediaDevices: ${md ? 'van' : 'NINCS'}`,
-    `getUserMedia: ${typeof md?.getUserMedia === 'function' ? 'van' : 'NINCS'}`,
-    `motor: ${'BarcodeDetector' in globalThis ? 'natív' : 'WASM'}`,
-    `UA: ${navigator.userAgent || '?'}`,
-  ].join('\n')
-}
-
 // Natív-preferáló detektor létrehozása. Androidon a beépített motort adja
 // vissza (nincs letöltés), egyébként a self-hostolt WASM ponyfillt.
 async function createDetector(): Promise<{ detector: DetectorLike; engine: 'native' | 'wasm' }> {
@@ -151,6 +133,7 @@ export function Scanner({
   const rafRef = useRef(0)
   const scanningRef = useRef(false)
   const doneRef = useRef(false)
+  const autoStartedRef = useRef(false)
 
   // Van-e élő kamera egyáltalán ezen a böngészőn (client-only, ezért lazy).
   const [liveSupported] = useState(() => hasCameraApi())
@@ -227,9 +210,8 @@ export function Scanner({
         audio: false,
       })
     } catch (e) {
-      const name = (e as { name?: string })?.name || 'ismeretlen'
       setCamState('error')
-      setCamError(`${describeCameraError(e)} [${name}]`)
+      setCamError(describeCameraError(e))
       return
     }
 
@@ -273,6 +255,19 @@ export function Scanner({
 
   // Leállítás a komponens bezárásakor.
   useEffect(() => stopCamera, [stopCamera])
+
+  // Auto-indítás: amint kész a motor és van élő kamera, indul magától – nem kell
+  // külön "Kamera indítása". (A böngésző-engedély megadása után prompt nélkül
+  // fut. Ha mégis elbukik, a gomb "Újra: kamera indítása"-ként marad meg.)
+  // queueMicrotask: hogy ne szinkron setState történjen az effekt törzsében.
+  useEffect(() => {
+    if (autoStartedRef.current) return
+    if (mode !== 'live' || !liveSupported || engine === 'loading') return
+    autoStartedRef.current = true
+    queueMicrotask(() => {
+      void startCamera()
+    })
+  }, [mode, liveSupported, engine, startCamera])
 
   // Fotóból dekódolás (kézi, másodlagos mód).
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -393,8 +388,12 @@ export function Scanner({
                 </>
               ) : (
                 <>
-                  Ez a böngésző/nézet nem tesz elérhetővé élő kamerát. Használd a
-                  fotós beolvasást, vagy nyisd meg rendes Safariban.
+                  Nem érhető el az élő kamera. iPhone-on Safariban ezt gyakran a{' '}
+                  <b>Zárt mód (Lockdown Mode)</b> okozza — vedd ki ezt az oldalt a
+                  Zárt mód alól: <b>aA</b> gomb a címsorban → <b>Weboldal
+                  beállításai</b> → <b>Zárt mód</b> KI, majd töltsd újra. (Ellenőrizd
+                  a Képernyőidő kamera-korlátozását is.) Addig használhatod a fotós
+                  beolvasást.
                 </>
               )}
             </div>
@@ -405,9 +404,6 @@ export function Scanner({
             >
               Beolvasás fotóval
             </button>
-            <pre className="w-full whitespace-pre-wrap break-words rounded bg-black/40 p-2 text-left font-mono text-[10px] leading-relaxed text-white/40">
-              {cameraDiagnostics()}
-            </pre>
           </div>
         ) : (
           <div className="flex w-full max-w-md flex-col items-center gap-4 text-center">
