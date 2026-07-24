@@ -55,6 +55,17 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
+        {/* Álló tájolás kényszerítése telefonon (CSS-vezérelt, csak fekvőben látszik) */}
+        <div className="orientation-lock" aria-hidden="true">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="7" y="2" width="10" height="20" rx="2" />
+            <path d="M11 18h2" />
+            <path d="M2 9a5 5 0 0 1 5-5" />
+            <path d="m2 6 0 3 3 0" />
+          </svg>
+          <p className="text-lg font-semibold">Fordítsd álló helyzetbe a telefont</p>
+          <p className="text-sm opacity-70">Ez az alkalmazás álló nézetre készült.</p>
+        </div>
         <ServiceWorkerRegister />
         <InstallPrompt />
         <SpeedInsights />

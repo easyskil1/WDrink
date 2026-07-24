@@ -33,6 +33,40 @@ body {
   overscroll-behavior-y: contain;
 }
 
+/* ---- Álló tájolás kényszerítése telefonon ----
+   A manifest orientation:portrait csak telepített Android PWA-nál hat, iOS-en
+   és sima böngészőben nem. Ez a CSS-fedőréteg mindenhol blokkolja a fekvő
+   használatot kis képernyőn (telefon), asztali gépet nem érint. */
+.orientation-lock {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 600px) and (pointer: coarse) {
+  .orientation-lock {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    text-align: center;
+    background: #0b0d10;
+    color: #fff;
+  }
+  body {
+    overflow: hidden;
+  }
+}
+
+@media print {
+  .orientation-lock {
+    display: none !important;
+  }
+}
+
 /* ---- Raktári hely címkék (QR) ---- */
 .labels-grid {
   display: grid;
