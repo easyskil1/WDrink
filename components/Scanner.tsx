@@ -1,16 +1,88 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser'
 
 /**
- * Közös vonalkód/QR olvasó. Két mód:
- *  - "live": folyamatos kamera-stream (getUserMedia) – asztali gépen és
- *    Androidon a legkényelmesebb.
- *  - "photo": natív fényképezés (<input capture>) + a képből dekódolás –
- *    iPhone-on (ahol a getUserMedia gyakran nem érhető el böngészőben) ez
- *    működik minden esetben. Ha az élő kamera nem indul, ide esünk vissza.
+ * Közös vonalkód/QR olvasó.
+ *
+ * Motor (a `barcode-detector` ponyfill mintájára):
+ *  - **Natív `BarcodeDetector`**, ha a böngésző támogatja (Android Chrome) –
+ *    azonnali, nincs WASM letöltés.
+ *  - **ZXing-C++ WASM fallback** (iPhone Safari), dinamikusan importálva, hogy
+ *    az Androidos userek ne fizessék meg a bundle-méretet. A `.wasm` binárist
+ *    **self-hostoljuk** (`/public/zxing_reader.wasm`), így raktári wifin sincs
+ *    külső CDN-függés.
+ *
+ * Két beolvasási mód:
+ *  - "live": folyamatos kamera-stream (getUserMedia) – asztali gépen, Androidon
+ *    és iOS Safariban a legkényelmesebb.
+ *  - "photo": natív fényképezés (<input capture>) + a képből dekódolás – ott,
+ *    ahol az élő kamera nem érhető el (pl. iOS Chrome). Ha a live nem indul,
+ *    ide esünk vissza.
  */
+
+type DetectedCode = { rawValue: string; format?: string }
+type DetectorLike = {
+  detect: (source: CanvasImageSource | Blob | ImageBitmap) => Promise<DetectedCode[]>
+}
+
+// Raktári használatra releváns formátumok: EAN/UPC termék-vonalkódok,
+// Code128/39 belső címkék, QR a tárhelyekhez, ITF karton-kódokhoz.
+const FORMATS = [
+  'qr_code',
+  'ean_13',
+  'ean_8',
+  'upc_a',
+  'upc_e',
+  'code_128',
+  'code_39',
+  'code_93',
+  'itf',
+  'codabar',
+  'data_matrix',
+  'pdf417',
+] as const
+
+// Natív-preferáló detektor létrehozása. Androidon a beépített motort adja
+// vissza (nincs letöltés), egyébként a self-hostolt WASM ponyfillt.
+// Van-e élő kamera (getUserMedia)? iOS Chrome-ban pl. nincs, ott fotó-mód kell.
+function hasLiveCamera(): boolean {
+  return (
+    typeof navigator !== 'undefined' &&
+    typeof navigator.mediaDevices?.getUserMedia === 'function'
+  )
+}
+
+async function createDetector(): Promise<{ detector: DetectorLike; engine: 'native' | 'wasm' }> {
+  const NativeBD = (globalThis as unknown as { BarcodeDetector?: unknown }).BarcodeDetector as
+    | (new (opts?: { formats?: readonly string[] }) => DetectorLike)
+    | undefined
+
+  if (NativeBD) {
+    try {
+      const getSupported = (NativeBD as unknown as {
+        getSupportedFormats?: () => Promise<readonly string[]>
+      }).getSupportedFormats
+      const supported = getSupported ? await getSupported().catch(() => []) : []
+      const formats = supported.length
+        ? FORMATS.filter((f) => supported.includes(f))
+        : [...FORMATS]
+      const detector = new NativeBD(formats.length ? { formats } : undefined)
+      return { detector, engine: 'native' }
+    } catch {
+      // A natív motor mégsem használható – WASM-ra esünk vissza.
+    }
+  }
+
+  const mod = await import('barcode-detector/ponyfill')
+  mod.setZXingModuleOverrides({
+    locateFile: (path: string, prefix: string) =>
+      path.endsWith('.wasm') ? '/zxing_reader.wasm' : prefix + path,
+  })
+  const detector = new mod.BarcodeDetector({ formats: [...FORMATS] }) as unknown as DetectorLike
+  return { detector, engine: 'wasm' }
+}
+
 export function Scanner({
   onResult,
   onClose,
@@ -19,75 +91,140 @@ export function Scanner({
   onClose: () => void
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const controlsRef = useRef<IScannerControls | null>(null)
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null)
-  const [mode, setMode] = useState<'live' | 'photo'>('live')
+  const detectorRef = useRef<DetectorLike | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const doneRef = useRef(false)
+  // Kezdőmód: ha nincs getUserMedia (pl. iOS Chrome), rögtön fotó-mód – így nem
+  // kell az effekt törzsében setState-elni (cascading render).
+  const [mode, setMode] = useState<'live' | 'photo'>(() =>
+    hasLiveCamera() ? 'live' : 'photo'
+  )
+  const [engine, setEngine] = useState<'native' | 'wasm' | 'loading'>('loading')
   const [error, setError] = useState<string | null>(null)
   const [decoding, setDecoding] = useState(false)
 
-  if (!readerRef.current) readerRef.current = new BrowserMultiFormatReader()
+  // Egyszeri találat-kezelés: leáll, és felfelé jelez.
+  function emit(text: string) {
+    if (doneRef.current) return
+    doneRef.current = true
+    if (navigator.vibrate) navigator.vibrate(60)
+    onResult(text)
+  }
 
-  // Élő kamera indítása (csak live módban).
+  // Detektor motor betöltése egyszer, mount-kor.
   useEffect(() => {
-    if (mode !== 'live') return
-
-    // Ha nincs getUserMedia (pl. iPhone böngésző, http kapcsolat), fotó-módra
-    // váltunk – ott natív kamerával lehet beolvasni.
-    if (
-      typeof navigator === 'undefined' ||
-      !navigator.mediaDevices?.getUserMedia
-    ) {
-      setMode('photo')
-      return
+    let cancelled = false
+    createDetector()
+      .then(({ detector, engine }) => {
+        if (cancelled) return
+        detectorRef.current = detector
+        setEngine(engine)
+      })
+      .catch(() => {
+        if (!cancelled) setError('A vonalkód-motor betöltése nem sikerült.')
+      })
+    return () => {
+      cancelled = true
     }
+  }, [])
+
+  // Élő kamera + folyamatos felismerő ciklus (csak live módban, ha kész a motor).
+  useEffect(() => {
+    if (mode !== 'live' || engine === 'loading') return
+
+    // getUserMedia hiányát a kezdőmód már fotó-módra állította; itt csak élő
+    // kamerával futunk tovább.
+    if (!hasLiveCamera()) return
 
     let cancelled = false
-    const reader = readerRef.current!
+    let rafId = 0
+    let lastScanAt = 0
+    const video = videoRef.current
 
     async function start() {
       try {
-        const controls = await reader.decodeFromConstraints(
-          { video: { facingMode: 'environment' } },
-          videoRef.current!,
-          (result, _err, controls) => {
-            if (result && !cancelled) {
-              controls.stop()
-              onResult(result.getText())
-            }
-          }
-        )
-        if (cancelled) controls.stop()
-        else controlsRef.current = controls
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        })
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop())
+          return
+        }
+        streamRef.current = stream
+        if (!video) return
+        video.srcObject = stream
+        await video.play()
+        rafId = requestAnimationFrame(loop)
       } catch {
         // Az élő kamera nem indult – fotó-móddal még mehet.
         if (!cancelled) setMode('photo')
       }
     }
+
+    async function loop(now: number) {
+      if (cancelled) return
+      const detector = detectorRef.current
+      // ~9 kép/mp: folyamatos, de nem CPU-zabáló.
+      if (detector && video && video.readyState >= 2 && now - lastScanAt > 110) {
+        lastScanAt = now
+        try {
+          const codes = await detector.detect(video)
+          if (codes.length > 0 && !cancelled) {
+            emit(codes[0].rawValue)
+            return
+          }
+        } catch {
+          // Átmeneti dekódolási hiba – nem kritikus, megyünk tovább.
+        }
+      }
+      rafId = requestAnimationFrame(loop)
+    }
+
     start()
 
     return () => {
       cancelled = true
-      controlsRef.current?.stop()
+      if (rafId) cancelAnimationFrame(rafId)
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
     }
-  }, [mode, onResult])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, engine])
 
   // Fotóból dekódolás (photo mód).
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = '' // ugyanaz a fájl újra kiválasztható legyen
     if (!file) return
+    const detector = detectorRef.current
+    if (!detector) return
     setDecoding(true)
     setError(null)
-    const url = URL.createObjectURL(file)
     try {
-      const result = await readerRef.current!.decodeFromImageUrl(url)
-      onResult(result.getText())
+      const bitmap = await createImageBitmap(file)
+      let codes: DetectedCode[]
+      try {
+        codes = await detector.detect(bitmap)
+      } finally {
+        bitmap.close()
+      }
+      if (codes.length > 0) {
+        emit(codes[0].rawValue)
+      } else {
+        setError(
+          'Nem sikerült vonalkódot felismerni a képen. Próbáld újra: közelebbről, éles, jól megvilágított képpel.'
+        )
+      }
     } catch {
       setError(
         'Nem sikerült vonalkódot felismerni a képen. Próbáld újra: közelebbről, éles, jól megvilágított képpel.'
       )
     } finally {
-      URL.revokeObjectURL(url)
       setDecoding(false)
     }
   }
@@ -111,13 +248,18 @@ export function Scanner({
         {mode === 'live' ? (
           <>
             <div className="relative w-full max-w-md">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
               <video
                 ref={videoRef}
                 className="w-full rounded-lg bg-black"
                 playsInline
+                muted
               />
               <div className="pointer-events-none absolute inset-0 m-8 rounded-lg border-2 border-white/70" />
+              {engine === 'loading' && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-white/80">
+                  Motor betöltése…
+                </div>
+              )}
             </div>
             <button
               type="button"
@@ -129,9 +271,7 @@ export function Scanner({
           </>
         ) : (
           <div className="flex w-full max-w-md flex-col items-center gap-4 text-center">
-            {error && (
-              <p className="text-sm text-red-300">{error}</p>
-            )}
+            {error && <p className="text-sm text-red-300">{error}</p>}
             <p className="text-sm text-white/70">
               Készíts éles fotót a vonalkódról vagy QR kódról.
             </p>
@@ -142,7 +282,7 @@ export function Scanner({
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                disabled={decoding}
+                disabled={decoding || engine === 'loading'}
                 onChange={handleFile}
               />
             </label>

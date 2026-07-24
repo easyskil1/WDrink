@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Vonalkód szkenner – prototípus</title>
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #14171c;
+    --line: #262b33;
+    --accent: #3ddc84;
+    --accent-dim: #1f7a4a;
+    --text: #e8ecef;
+    --text-dim: #8a919c;
+    --danger: #ff5c5c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+    padding-bottom: 40px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--text-dim); font-size: 13px; margin-bottom: 16px; }
+
+  .status-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .badge {
+    font-size: 11px; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--text-dim);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
+  .badge.ok { color: var(--accent); border-color: var(--accent-dim); }
+  .badge.ok .dot { background: var(--accent); }
+  .badge.warn { color: #e8b84b; border-color: #5a4a1f; }
+  .badge.warn .dot { background: #e8b84b; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; padding: 14px; margin-bottom: 14px;
+  }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin: 0 0 10px; }
+
+  .video-wrap {
+    position: relative; width: 100%; aspect-ratio: 4/3;
+    background: #000; border-radius: 10px; overflow: hidden;
+  }
+  video { width: 100%; height: 100%; object-fit: cover; }
+  .scan-line {
+    position: absolute; left: 6%; right: 6%; top: 50%;
+    height: 2px; background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: sweep 1.8s ease-in-out infinite;
+  }
+  @keyframes sweep {
+    0%, 100% { top: 30%; opacity: .3; }
+    50% { top: 70%; opacity: 1; }
+  }
+  .frame {
+    position: absolute; inset: 12%;
+    border: 2px solid rgba(61,220,132,.5);
+    border-radius: 10px; pointer-events: none;
+  }
+
+  .btn {
+    width: 100%; padding: 13px; border-radius: 10px; border: none;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: #04150a; margin-top: 10px;
+  }
+  .btn.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .btn:disabled { opacity: .4; }
+
+  input[type="text"] {
+    width: 100%; padding: 13px; border-radius: 10px;
+    border: 1px solid var(--line); background: #0e1013; color: var(--text);
+    font-size: 15px;
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+
+  .log {
+    max-height: 220px; overflow-y: auto; font-size: 13px;
+  }
+  .log-item {
+    display: flex; justify-content: space-between; gap: 8px;
+    padding: 9px 0; border-bottom: 1px solid var(--line);
+  }
+  .log-item:last-child { border-bottom: none; }
+  .log-code { font-family: ui-monospace, monospace; font-weight: 600; }
+  .log-meta { color: var(--text-dim); font-size: 11px; text-align: right; white-space: nowrap; }
+  .log-empty { color: var(--text-dim); font-size: 13px; padding: 10px 0; }
+
+  .hint { font-size: 12px; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1>Vonalkód szkenner — prototípus</h1>
+<div class="sub">Kamera: natív BarcodeDetector (Android) vagy WASM fallback (iPhone). Bluetooth: HID mód, fókuszban lévő mezőbe gépel.</div>
+
+<div class="status-row">
+  <div class="badge" id="badge-engine"><span class="dot"></span><span id="badge-engine-text">motor betöltése…</span></div>
+  <div class="badge" id="badge-camera"><span class="dot"></span><span>kamera: leállítva</span></div>
+</div>
+
+<div class="panel">
+  <h2>Kamerás szkennelés</h2>
+  <div class="video-wrap" id="video-wrap" style="display:none;">
+    <video id="video" playsinline muted></video>
+    <div class="frame"></div>
+    <div class="scan-line"></div>
+  </div>
+  <button class="btn" id="btn-camera">Kamera indítása</button>
+  <div class="hint">iPhone-on az első indításkor kb. 0.5–1.5 mp a WASM motor betöltése, utána a felismerés folyamatos és gyors. HTTPS szükséges a kamera eléréséhez.</div>
+</div>
+
+<div class="panel">
+  <h2>Bluetooth szkenner (HID / billentyűzet-emuláció)</h2>
+  <input type="text" id="hid-input" placeholder="Kattints ide, majd húzd végig a szkennert…" autocomplete="off">
+  <div class="hint">A legtöbb Bluetooth vonalkódolvasó HID módban egyszerűen "begépeli" a kódot + Entert küld — nincs szükség Web Bluetooth API-ra, ami iPhone-on egyébként sem elérhető. Csak ez a mező legyen fókuszban beolvasáskor.</div>
+</div>
+
+<div class="panel">
+  <h2>Beolvasott kódok (<span id="log-count">0</span>)</h2>
+  <div class="log" id="log"><div class="log-empty">Még nincs beolvasás.</div></div>
+  <button class="btn secondary" id="btn-clear">Lista törlése</button>
+</div>
+
+<script type="module">
+  // Polyfill/ponyfill regisztrálása: natív BarcodeDetector-t használja ha van (Android Chrome),
+  // egyébként ZXing-C++ WASM motort tölt be automatikusan (iPhone Safari/Chrome).
+  import "https://fastly.jsdelivr.net/npm/barcode-detector@3/dist/es/side-effects.min.js";
+
+  const badgeEngine = document.getElementById('badge-engine');
+  const badgeEngineText = document.getElementById('badge-engine-text');
+  const badgeCamera = document.getElementById('badge-camera');
+  const videoWrap = document.getElementById('video-wrap');
+  const video = document.getElementById('video');
+  const btnCamera = document.getElementById('btn-camera');
+  const hidInput = document.getElementById('hid-input');
+  const logEl = document.getElementById('log');
+  const logCount = document.getElementById('log-count');
+  const btnClear = document.getElementById('btn-clear');
+
+  let stream = null;
+  let detector = null;
+  let scanning = false;
+  let lastCode = null;
+  let lastCodeTime = 0;
+
+  const results = [];
+
+  function addResult(code, format, source) {
+    const now = Date.now();
+    // duplikátum-szűrés: ugyanaz a kód 1.5 mp-en belül ne rögzüljön kétszer
+    if (code === lastCode && now - lastCodeTime < 1500) return;
+    lastCode = code;
+    lastCodeTime = now;
+
+    results.unshift({ code, format, source, time: new Date() });
+    renderLog();
+
+    if (navigator.vibrate) navigator.vibrate(60);
+  }
+
+  function renderLog() {
+    logCount.textContent = results.length;
+    if (results.length === 0) {
+      logEl.innerHTML = '<div class="log-empty">Még nincs beolvasás.</div>';
+      return;
+    }
+    logEl.innerHTML = results.slice(0, 50).map(r => `
+      <div class="log-item">
+        <span class="log-code">${escapeHtml(r.code)}</span>
+        <span class="log-meta">${r.format || ''} · ${r.source}<br>${r.time.toLocaleTimeString('hu-HU')}</span>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // --- Motor státusz ---
+  async function initEngine() {
+    try {
+      // egy apró teszt-hívás, hogy lássuk elérhető-e a BarcodeDetector
+      if (!('BarcodeDetector' in window)) throw new Error('no BarcodeDetector');
+      const formats = await BarcodeDetector.getSupportedFormats().catch(() => null);
+      detector = new BarcodeDetector({
+        formats: ['qr_code','ean_13','ean_8','upc_a','upc_e','code_128','code_39','code_93','itf','data_matrix','pdf417','codabar']
+      });
+      badgeEngine.classList.add('ok');
+      badgeEngineText.textContent = 'motor kész';
+    } catch (e) {
+      badgeEngine.classList.add('warn');
+      badgeEngineText.textContent = 'motor hiba: ' + e.message;
+    }
+  }
+  initEngine();
+
+  // --- Kamera indítás/leállítás ---
+  btnCamera.addEventListener('click', async () => {
+    if (stream) {
+      stopCamera();
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+      videoWrap.style.display = 'block';
+      btnCamera.textContent = 'Kamera leállítása';
+      badgeCamera.classList.add('ok');
+      badgeCamera.querySelector('span:last-child').textContent = 'kamera: fut';
+      scanning = true;
+      requestAnimationFrame(scanLoop);
+    } catch (e) {
+      alert('Kamera hiba: ' + e.message + '\n\nEllenőrizd, hogy HTTPS-en fut-e az oldal és van-e kamera engedély.');
+    }
+  });
+
+  function stopCamera() {
+    scanning = false;
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    videoWrap.style.display = 'none';
+    btnCamera.textContent = 'Kamera indítása';
+    badgeCamera.classList.remove('ok');
+    badgeCamera.querySelector('span:last-child').textContent = 'kamera: leállítva';
+  }
+
+  let lastScanAt = 0;
+  async function scanLoop() {
+    if (!scanning) return;
+    const now = performance.now();
+    // ~8-10 kép/mp elég a folyamatos, de nem CPU-zabáló felismeréshez
+    if (now - lastScanAt > 110 && detector && video.readyState >= 2) {
+      lastScanAt = now;
+      try {
+        const barcodes = await detector.detect(video);
+        if (barcodes.length > 0) {
+          const b = barcodes[0];
+          addResult(b.rawValue, b.format, 'kamera');
+        }
+      } catch (e) {
+        // átmeneti dekódolási hiba, nem kritikus
+      }
+    }
+    requestAnimationFrame(scanLoop);
+  }
+
+  // --- Bluetooth HID szkenner (billentyűzet-emuláció) ---
+  // A szkenner gyors karakter-sorozatot küld, majd Enter-t (vagy Tab-ot).
+  hidInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const val = hidInput.value.trim();
+      if (val) {
+        addResult(val, null, 'BT szkenner');
+      }
+      hidInput.value = '';
+      e.preventDefault();
+    }
+  });
+
+  // Oldal betöltésekor automatikusan a HID mezőre fókuszál, hogy azonnal
+  // fogadja a Bluetooth szkenner bevitelét raktári/bevételezési használatnál.
+  window.addEventListener('load', () => hidInput.focus());
+
+  btnClear.addEventListener('click', () => {
+    results.length = 0;
+    renderLog();
+  });
+</script>
+
+</body>
+</html>
