@@ -134,6 +134,7 @@ export function Scanner({
   const scanningRef = useRef(false)
   const doneRef = useRef(false)
   const autoStartedRef = useRef(false)
+  const audioCtxRef = useRef<AudioContext | null>(null)
 
   // Van-e élő kamera egyáltalán ezen a böngészőn (client-only, ezért lazy).
   const [liveSupported] = useState(() => hasCameraApi())
@@ -146,16 +147,67 @@ export function Scanner({
   const [error, setError] = useState<string | null>(null)
   const [decoding, setDecoding] = useState(false)
 
+  // Hang: az AudioContext-et felhasználói gesztusból (kamera indítása / fotó,
+  // ill. az első koppintás) hozzuk létre és oldjuk fel - iOS Safari különben
+  // némán elnyelné a "bip" hangot.
+  const ensureAudio = useCallback(() => {
+    try {
+      if (!audioCtxRef.current) {
+        const Ctx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext
+        if (Ctx) audioCtxRef.current = new Ctx()
+      }
+      if (audioCtxRef.current?.state === 'suspended') {
+        void audioCtxRef.current.resume()
+      }
+    } catch {
+      // a hang nem kritikus
+    }
+  }, [])
+
+  // Rövid "bip" minden sikeres beolvasásnál.
+  const playBeep = useCallback(() => {
+    const ctx = audioCtxRef.current
+    if (!ctx) return
+    try {
+      if (ctx.state === 'suspended') void ctx.resume()
+      const t = ctx.currentTime
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'square'
+      osc.frequency.value = 1760
+      gain.gain.setValueAtTime(0.0001, t)
+      gain.gain.exponentialRampToValueAtTime(0.3, t + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.13)
+      osc.connect(gain).connect(ctx.destination)
+      osc.start(t)
+      osc.stop(t + 0.14)
+    } catch {
+      // a hang nem kritikus
+    }
+  }, [])
+
+  // Első koppintásra feloldjuk a hangot (ha az auto-indítás miatt nem volt
+  // gesztus a kamera indításakor).
+  useEffect(() => {
+    const unlock = () => ensureAudio()
+    window.addEventListener('pointerdown', unlock, { once: true })
+    return () => window.removeEventListener('pointerdown', unlock)
+  }, [ensureAudio])
+
   // Egyszeri találat-kezelés: leáll, és felfelé jelez.
   const emit = useCallback(
     (text: string) => {
       if (doneRef.current) return
       doneRef.current = true
       scanningRef.current = false
+      playBeep()
       if (navigator.vibrate) navigator.vibrate(60)
       onResult(text)
     },
-    [onResult]
+    [onResult, playBeep]
   )
 
   // Detektor motor betöltése egyszer, mount-kor.
@@ -271,6 +323,7 @@ export function Scanner({
 
   // Fotóból dekódolás (kézi, másodlagos mód).
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    ensureAudio()
     const file = e.target.files?.[0]
     e.target.value = '' // ugyanaz a fájl újra kiválasztható legyen
     if (!file) return
@@ -344,7 +397,10 @@ export function Scanner({
                 )}
                 <button
                   type="button"
-                  onClick={startCamera}
+                  onClick={() => {
+                    ensureAudio()
+                    void startCamera()
+                  }}
                   disabled={engineLoading || camState === 'starting'}
                   className="w-full rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 disabled:opacity-50"
                 >
