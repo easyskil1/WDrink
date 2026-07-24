@@ -44,6 +44,8 @@ const FORMATS = [
 ] as const
 
 // Van-e egyáltalán kamera-API (getUserMedia)? Secure contexthez (HTTPS) kötött.
+// FONTOS: iOS Chrome/Firefox/Edge NEM teszi elérhetővé (`navigator.mediaDevices`
+// undefined) – ott élő kamera nincs, csak Safariban vagy telepített PWA-ban.
 function hasCameraApi(): boolean {
   return (
     typeof navigator !== 'undefined' &&
@@ -51,29 +53,42 @@ function hasCameraApi(): boolean {
   )
 }
 
-// Ideiglenes diagnosztika: pontosan mit tud a böngésző. Segít eldönteni, miért
-// nem indul a kamera (pl. iOS Chrome getUserMedia hiány).
+// iOS-en Safarin/PWA-n kívüli böngésző (Chrome/Firefox/Edge for iOS)? Ott nincs
+// élő kamera – Safarit kell ajánlani.
+function isIosThirdPartyBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /CriOS|FxiOS|EdgiOS/.test(navigator.userAgent || '')
+}
+
+// Ismert iOS in-app böngészők (ezekben sincs élő kamera).
+function inAppBrowserName(): string | null {
+  if (typeof navigator === 'undefined') return null
+  const ua = navigator.userAgent || ''
+  if (/FBAN|FBAV|FB_IAB/.test(ua)) return 'Facebook'
+  if (/Instagram/.test(ua)) return 'Instagram'
+  if (/Messenger/.test(ua)) return 'Messenger'
+  if (/GSA\//.test(ua)) return 'Google app'
+  if (/Line\//.test(ua)) return 'LINE'
+  if (/MicroMessenger/.test(ua)) return 'WeChat'
+  return null
+}
+
+// Teljes diagnosztika – segít eldönteni, miért nincs kamera (böngésző/kontextus).
 function cameraDiagnostics(): string {
   if (typeof navigator === 'undefined') return 'nincs navigator'
-  const md = navigator.mediaDevices
-  const secure = typeof window !== 'undefined' ? String(window.isSecureContext) : '?'
-  const ua = navigator.userAgent || ''
-  const brand = /CriOS/.test(ua)
-    ? 'Chrome-iOS'
-    : /FxiOS/.test(ua)
-      ? 'Firefox-iOS'
-      : /EdgiOS/.test(ua)
-        ? 'Edge-iOS'
-        : /Safari/.test(ua) && /Version\//.test(ua)
-          ? 'Safari'
-          : 'egyéb'
+  const md = navigator.mediaDevices as MediaDevices | undefined
+  const w = typeof window !== 'undefined' ? window : undefined
   return [
-    `böngésző: ${brand}`,
-    `secureContext: ${secure}`,
+    `secureContext: ${w ? String(w.isSecureContext) : '?'}`,
+    `iframe: ${w ? String(w.self !== w.top) : '?'}`,
+    `standalone(PWA): ${
+      w && 'standalone' in w.navigator ? String((w.navigator as { standalone?: boolean }).standalone) : '?'
+    }`,
     `mediaDevices: ${md ? 'van' : 'NINCS'}`,
     `getUserMedia: ${typeof md?.getUserMedia === 'function' ? 'van' : 'NINCS'}`,
-    `BarcodeDetector: ${'BarcodeDetector' in globalThis ? 'natív' : 'WASM'}`,
-  ].join(' · ')
+    `motor: ${'BarcodeDetector' in globalThis ? 'natív' : 'WASM'}`,
+    `UA: ${navigator.userAgent || '?'}`,
+  ].join('\n')
 }
 
 // Natív-preferáló detektor létrehozása. Androidon a beépített motort adja
@@ -137,6 +152,8 @@ export function Scanner({
   const scanningRef = useRef(false)
   const doneRef = useRef(false)
 
+  // Van-e élő kamera egyáltalán ezen a böngészőn (client-only, ezért lazy).
+  const [liveSupported] = useState(() => hasCameraApi())
   const [mode, setMode] = useState<'live' | 'photo'>('live')
   const [engine, setEngine] = useState<'native' | 'wasm' | 'loading'>('loading')
   // A kamera-stream állapota: idle = még nem indítottuk, starting = indul,
@@ -311,7 +328,7 @@ export function Scanner({
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
-        {mode === 'live' ? (
+        {mode === 'live' && liveSupported ? (
           <div className="flex w-full max-w-md flex-col items-center gap-4">
             <div className="relative w-full">
               <video
@@ -344,9 +361,6 @@ export function Scanner({
                         ? 'Újra: kamera indítása'
                         : 'Kamera indítása'}
                 </button>
-                <p className="break-words font-mono text-[10px] leading-relaxed text-white/40">
-                  {cameraDiagnostics()}
-                </p>
               </div>
             )}
 
@@ -360,6 +374,40 @@ export function Scanner({
             >
               Inkább fotóval olvasok be
             </button>
+          </div>
+        ) : mode === 'live' && !liveSupported ? (
+          // Nincs getUserMedia → nincs élő kamera ezen a böngészőn/kontextusban.
+          <div className="flex w-full max-w-md flex-col items-center gap-4 text-center">
+            <div className="rounded-lg border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+              {inAppBrowserName() ? (
+                <>
+                  Úgy tűnik, ezt az oldalt a <b>{inAppBrowserName()}</b> beépített
+                  böngészőjében nyitottad meg — abban nincs élő kamera. Nyisd meg{' '}
+                  <b>Safariban</b> (jobb alul a megosztás ikon → „Megnyitás
+                  Safariban”).
+                </>
+              ) : isIosThirdPartyBrowser() ? (
+                <>
+                  Az <b>élő kamera iPhone-on csak Safariban</b> működik (a Chrome/
+                  Firefox iOS nem engedi). Nyisd meg ezt az oldalt <b>Safariban</b>.
+                </>
+              ) : (
+                <>
+                  Ez a böngésző/nézet nem tesz elérhetővé élő kamerát. Használd a
+                  fotós beolvasást, vagy nyisd meg rendes Safariban.
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMode('photo')}
+              className="w-full rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              Beolvasás fotóval
+            </button>
+            <pre className="w-full whitespace-pre-wrap break-words rounded bg-black/40 p-2 text-left font-mono text-[10px] leading-relaxed text-white/40">
+              {cameraDiagnostics()}
+            </pre>
           </div>
         ) : (
           <div className="flex w-full max-w-md flex-col items-center gap-4 text-center">
@@ -378,16 +426,18 @@ export function Scanner({
                 onChange={handleFile}
               />
             </label>
-            <button
-              type="button"
-              onClick={() => {
-                setError(null)
-                setMode('live')
-              }}
-              className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
-            >
-              Vissza az élő kamerához
-            </button>
+            {liveSupported && (
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null)
+                  setMode('live')
+                }}
+                className="text-sm text-white/70 underline underline-offset-2 hover:text-white"
+              >
+                Vissza az élő kamerához
+              </button>
+            )}
           </div>
         )}
       </div>
