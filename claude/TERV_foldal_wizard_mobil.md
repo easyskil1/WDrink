@@ -101,7 +101,7 @@
   - [x] `"display": "standalone"` — böngészősáv nélküli megjelenéshez
   - [x] `"orientation": "portrait"` — álló nézet rögzítéséhez
   - [x] Ikonok (192/512 + maskable) a "Hozzáadás a kezdőképernyőhöz" funkcióhoz
-- [ ] Service worker alapszintű beállítása (ha még nincs), mert ez feltétele a teljes PWA-viselkedésnek
+- [x] Service worker alapszintű beállítása → `public/sw.js` + `public/offline.html` + `components/ServiceWorkerRegister.tsx` (root layoutba kötve, csak produkcióban). Óvatos cache: immutable assetek cache-first, navigáció network-first offline fallbackkel, Supabase/RSC érintetlen. A `proxy.ts` matcher kizárja a PWA-endpointokat az auth alól.
 - [ ] Tesztelés: telepítés utáni fullscreen + orientáció-zár ellenőrzése Android/iOS eszközön (eszközön, kézzel)
 
 ---
@@ -128,7 +128,9 @@ munkaválasztó, viewport + PWA manifest (orientation portrait), mind a 6 wizard
 `app/(wizard)/munka/*` alatt, közös keret a `components/wizard/`-ban.
 
 **Még hátra:**
-- Service worker (offline/teljes PWA) — nincs beállítva.
-- Eszközön tesztelés (Android/iOS): fullscreen, orientáció-zár, kamera a wizardökben.
+- Eszközön tesztelés (Android/iOS): telepítés, fullscreen, orientáció-zár,
+  kamera a wizardökben, offline fallback.
 - Nyitott döntés véglegesítése: a főoldal `/` most a munkaválasztó — ha a
   bejelentkezés utáni default más legyen, azt még be lehet állítani.
+
+Csak az eszközön végzett kézi tesztelés maradt — minden más kész és buildel.

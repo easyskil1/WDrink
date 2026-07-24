@@ -12,8 +12,11 @@ export const config = {
      * Minden útvonalra fut, kivéve:
      * - _next/static (statikus fájlok)
      * - _next/image (képoptimalizálás)
-     * - favicon.ico, és a public mappa gyakori kiterjesztései
+     * - favicon.ico
+     * - PWA-endpointok: sw.js, offline.html, manifest.webmanifest (auth nélkül
+     *   elérhetőnek kell lenniük, különben a telepítés/SW-regisztráció elbukik)
+     * - a public mappa gyakori kiterjesztései (kép + wasm)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sw.js|offline.html|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|wasm)$).*)',
   ],
 }
