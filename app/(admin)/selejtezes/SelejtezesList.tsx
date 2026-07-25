@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { KISZERELES_LABEL, type KiszerelesTipus } from '@/lib/products'
 import { SELEJT_OK_OPTIONS } from '@/lib/stock'
 import type { OnHandItem } from './page'
@@ -32,6 +31,8 @@ function Row({ item }: { item: OnHandItem }) {
     try {
       let docUrl: string | null = null
       if (file) {
+        // Dinamikus import: a supabase-js csak feltöltéskor töltődik.
+        const { createClient } = await import('@/lib/supabase/client')
         const supabase = createClient()
         const ext = file.name.split('.').pop() || 'jpg'
         const path = `${Date.now()}-${Math.round(Math.random() * 1e6)}.${ext}`

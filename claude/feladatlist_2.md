@@ -54,7 +54,8 @@
 - [x] **B3** 🔴 `dashboard_data()` idősor alszűrői dátumkorlátot kaptak (`created_at >= current_date - interval '29 days'`).
   Ugyanabban a migrációban. ✅ alkalmazva.
 - [ ] **B4** 🟡 `dashboard.sql:21-64` – 7 külön `stock_items` scan (keszletertek, puffer, kigyujtve stb.).
-  Vond össze feltételes aggregációval. **HALASZTVA**: kis, on-hand méretű tábla, `statusz`-index gyors, kockázat/haszon most nem éri meg.
+  Vond össze feltételes aggregációval. **ELVETVE**: a számlálók index-alapon gyorsak, egy scanbe vonva
+  a nyereség marginális/bizonytalan, egy működő éles RPC átírásának kockázata nem éri meg.
 
 ---
 
@@ -81,9 +82,10 @@
   **Megj.:** ha később minden termékkép Supabase storage-ba kerül (egységes host), érdemes visszatérni a `next/image` optimalizálóra.
 - [x] **D3** 🟡 `InstallPrompt` külön, aszinkron chunkba (`components/InstallPromptLazy.tsx`,
   `next/dynamic` + `ssr:false`); a root layout ezt hívja. ✅
-- [ ] **D4** 🟡 supabase-js kivétele a kliens-bundle-ből – csak Storage-feltöltéshez van behúzva:
-  `BevetelezesWizard.tsx:6`, `SelejtezesList.tsx:5`, `BevetelezesForm.tsx:5`. Told server actionbe,
-  vagy `import()`-tal a handleren belül. **HALASZTVA** (nagyobb refaktor; D5 részben enyhíti a bundle-t).
+- [x] **D4** 🟡 supabase-js kivéve a kezdeti kliens-bundle-ből: a 3 komponens
+  (`BevetelezesWizard`, `SelejtezesList`, `BevetelezesForm`) a statikus import helyett
+  a feltöltés-kezelőben **dinamikusan** `await import('@/lib/supabase/client')`-el tölti
+  (csak tényleges kép-feltöltéskor). ✅ (tsc + build zöld)
 - [x] **D5** 🟢 `next.config.ts`: `experimental.optimizePackageImports: ['@supabase/supabase-js','@supabase/ssr']`. ✅
 
 ---
