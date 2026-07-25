@@ -3,23 +3,28 @@
  * betöltés raktári wifin).
  *
  * ÓVATOS caching - hitelesített adat SOHA nem kerül cache-be:
- *  - Immutable statikus assetek (`/_next/static/`, ikonok, szkenner WASM):
- *    cache-first (a Next.js hasheli a fájlneveket, így nem avulnak el).
+ *  - Immutable statikus assetek (`/_next/static/`, ikonok): cache-first
+ *    (a Next.js hasheli a fájlneveket, így nem avulnak el).
+ *  - Szkenner WASM (`.wasm`): NEM előcache-elt (1 MB, csak a WASM-fallback
+ *    útvonalon kell, natív BarcodeDetector esetén soha). Futásidőben, első
+ *    tényleges használatkor cache-eljük cache-first módon → iOS-en az offline
+ *    szken az első használat után megmarad, más eszköz nem tölti le feleslegesen.
  *  - Navigáció (HTML oldalbetöltés): network-first, hiba esetén offline oldal.
  *    A választ NEM cache-eljük (nehogy más user vagy elavult készlet ragadjon be).
  *  - Supabase (cross-origin), RSC-adatlekérés, POST/action: NEM nyúlunk hozzá,
  *    mindig élő hálózat.
  */
 
-const CACHE = 'dw-static-v1'
+// v2: a szkenner WASM kikerült a precache-ből (lásd fetch-handler, .wasm ág).
+// A verzióbump miatt a régi, 1 MB WASM-ot tartalmazó cache aktiváláskor törlődik.
+const CACHE = 'dw-static-v2'
 
-// Előcache-elt, verzió-független statikus fájlok.
+// Előcache-elt, verzió-független statikus fájlok (kicsi, minden eszköznek kell).
 const PRECACHE = [
   '/offline.html',
   '/icon-192.png',
   '/icon-512.png',
   '/apple-icon.png',
-  '/zxing_reader.wasm',
 ]
 
 self.addEventListener('install', (event) => {
@@ -69,9 +74,11 @@ self.addEventListener('fetch', (event) => {
   // Cross-origin (pl. Supabase) - ne nyúljunk hozzá.
   if (!sameOrigin) return
 
-  // Immutable statikus assetek → cache-first.
+  // Immutable statikus assetek + szkenner WASM → cache-first.
+  // A .wasm nincs előcache-elve: első tényleges használatkor kerül cache-be.
   if (
     url.pathname.startsWith('/_next/static/') ||
+    url.pathname.endsWith('.wasm') ||
     PRECACHE.includes(url.pathname)
   ) {
     event.respondWith(cacheFirst(request))

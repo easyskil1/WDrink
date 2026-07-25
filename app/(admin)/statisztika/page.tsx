@@ -10,6 +10,8 @@ type DashboardData = {
   kigyujtve_tetel: number
   alacsony_keszlet: { nev: string; keszlet: number; min_keszlet: number }[]
   top_termekek: { nev: string; eladott_db: number }[]
+  beszallito_rangsor: { label: string; value: number }[]
+  vevo_rangsor: { label: string; value: number }[]
   selejt: { ok: string; db: number }[]
   idosor: { nap: string; bevet_db: number; kiad_db: number }[]
 }
@@ -204,66 +206,12 @@ function TimeSeries({ data }: { data: DashboardData['idosor'] }) {
   )
 }
 
-/** Mozgás-sorokat név szerint összegez (mennyiseg * egységár), rangsorolva. */
-function rangsor(
-  rows: {
-    mennyiseg: number
-    nev: string | null | undefined
-    ar: number | null | undefined
-    egyseg: number | null | undefined
-  }[],
-  limit = 10
-): { label: string; value: number }[] {
-  const map = new Map<string, number>()
-  for (const r of rows) {
-    if (!r.nev || !r.egyseg) continue
-    const ertek = r.mennyiseg * (r.ar ?? 0) / r.egyseg
-    map.set(r.nev, (map.get(r.nev) ?? 0) + ertek)
-  }
-  return [...map.entries()]
-    .map(([label, value]) => ({ label, value: Math.round(value) }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, limit)
-}
-
 export default async function DashboardPage() {
   const supabase = await createClient()
+  // A beszállító- és vevő-rangsort is a dashboard_data() RPC adja vissza (B2),
+  // így egyetlen DB-kör van, a teljes movement_log lehúzása helyett.
   const { data, error } = await supabase.rpc('dashboard_data')
   const d = (data ?? null) as DashboardData | null
-
-  // Beszállítói rangsor bevételezési (beszerzési) érték szerint.
-  const { data: bevRows } = await supabase
-    .from('movement_log')
-    .select(
-      'mennyiseg, delivery_notes!inner(suppliers!inner(nev)), stock_items!inner(product_units!inner(beszerzesi_ar, mennyiseg_alapegysegben))'
-    )
-    .eq('tipus', 'bevetelezes')
-  const beszallitoRangsor = rangsor(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((bevRows ?? []) as any[]).map((r) => ({
-      mennyiseg: r.mennyiseg,
-      nev: r.delivery_notes?.suppliers?.nev,
-      ar: r.stock_items?.product_units?.beszerzesi_ar,
-      egyseg: r.stock_items?.product_units?.mennyiseg_alapegysegben,
-    }))
-  )
-
-  // Vásárlói rangsor kiszállítási (nettó eladási) érték szerint.
-  const { data: kiaRows } = await supabase
-    .from('movement_log')
-    .select(
-      'mennyiseg, delivery_notes!inner(vevo_nev), stock_items!inner(product_units!inner(netto_ar, mennyiseg_alapegysegben))'
-    )
-    .eq('tipus', 'kiadas')
-  const vevoRangsor = rangsor(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((kiaRows ?? []) as any[]).map((r) => ({
-      mennyiseg: r.mennyiseg,
-      nev: r.delivery_notes?.vevo_nev,
-      ar: r.stock_items?.product_units?.netto_ar,
-      egyseg: r.stock_items?.product_units?.mennyiseg_alapegysegben,
-    }))
-  )
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -308,11 +256,11 @@ export default async function DashboardPage() {
             </Card>
 
             <Card title="Beszállítók rangsora - bevételezés (beszerzési érték)">
-              <HBars rows={beszallitoRangsor} color="#0f766e" format={ft} />
+              <HBars rows={d.beszallito_rangsor ?? []} color="#0f766e" format={ft} />
             </Card>
 
             <Card title="Vásárlók rangsora - kiszállítás (nettó eladási érték)">
-              <HBars rows={vevoRangsor} color="#1d4ed8" format={ft} />
+              <HBars rows={d.vevo_rangsor ?? []} color="#1d4ed8" format={ft} />
             </Card>
 
             <Card title="Selejt / veszteség - ok szerint">

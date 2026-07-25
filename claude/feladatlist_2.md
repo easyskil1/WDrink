@@ -1,0 +1,155 @@
+# WDrink – Teljesítmény-optimalizálási feladatlista (Feladatlista 2)
+
+> Cél: az app gyorsítása anélkül, hogy a működés változna. A vizsgálat a teljes
+> kódra kiterjedt (adatréteg / SQL, Next.js rendering + cache, kliens-bundle +
+> assetek, middleware). Minden feladatnál ott a **fájl:sor** és a **konkrét fix**.
+>
+> Alapelvek amiket NEM bántunk (már jók): auth dedup `React.cache`-sel, lokális
+> JWT-ellenőrzés (`getClaims`, nincs hálózati kör), Scanner + WASM code-split,
+> `qrcode` csak szerveren, `next/font` self-hosted, middleware matcher.
+>
+> Régió: **✅ ellenőrizve, Frankfurt (`fra1`)** – a legnagyobb tétel megvan.
+> Nincs polling / realtime / folyamatos frissítés: az adat csak lapbetöltéskor és
+> felhasználói művelet után frissül.
+>
+> Jelölés: `[ ]` nyitott · `[x]` kész · **Hatás**: 🔴 nagy / 🟡 közepes / 🟢 kicsi
+>
+> **Migráció-alkalmazás:** a gépen elérhető `SUPABASE_ACCESS_TOKEN` (Management API) +
+> project ref `qjpsvylskodxzoqklwsg`. Az új SQL migrációk közvetlenül futtathatók:
+> `POST https://api.supabase.com/v1/projects/<ref>/database/query` (Bearer token),
+> a repó `supabase/migrations/*.sql` fájljából (nincs copy-paste hiba).
+
+---
+
+## FÁZIS A – Adatbázis-indexek (SQL) 🔴
+
+> Egyetlen új migrációba tehető, frontend-kód nem változik. A legjobb hatás/kockázat
+> arány. Új fájl: `supabase/migrations/<timestamp>_perf_indexek.sql`.
+>
+> **STÁTUSZ: ✅ KÉSZ + ALKALMAZVA** (`supabase/migrations/20260725091758_perf_indexek.sql`,
+> A1–A4 lefuttatva a Supabase-en dashboard SQL editorból, 2026-07-25). A5 kihagyva (kis tábla).
+
+- [x] **A1** 🔴 Index a szállítólevél-nyomtatáshoz
+  `create index movement_log_delivery_note_idx on public.movement_log (delivery_note_id);`
+  Ok: `kiadas/[id]/szallitolevel/page.tsx:78` `delivery_note_id` szerint szűr, jelenleg index nélkül → teljes tábla-scan nyomtatásonként. (`init_schema.sql:240,247-249`)
+- [ ] **A2** 🟡 Összetett indexek a készlet-munkalistákhoz (FEFO + rendezés):
+  `create index stock_items_statusz_lejarat_idx on public.stock_items (statusz, lejarat_datum nulls last);`
+  `create index stock_items_statusz_created_idx on public.stock_items (statusz, created_at);`
+  Ok: `kigyujtes/page.tsx:32-34`, `osszekeszites:33-35`, `betarolas:33-35`, `kiadas:29-31`, `atrarolas:37-39`, `selejtezes:43-45` mind `statusz`-ra szűr + `created_at`/`lejarat_datum`-ra rendez; jelenleg csak külön indexek vannak. (`init_schema.sql:219-223`)
+- [ ] **A3** 🟢 `create index suppliers_nev_idx on public.suppliers (nev);`
+  Ok: több `.order('nev')` (`termekek/page.tsx:42`, `bevetelezes/page.tsx:18`, `termekek/uj:9`, `termekek/[id]:25`, `beszallitok:11`).
+- [ ] **A4** 🟢 Részleges index az aktív termékekre:
+  `create index products_aktiv_idx on public.products (aktiv) where aktiv;`
+  Ok: `bevetelezes/page.tsx:24`, `termekek/page.tsx:53-54`.
+- [ ] **A5** 🟢 (opcionális, csak ha a `locations` megnő) index `locations (tipus)` / `(aktiv)` a `helyek` szűrőkhöz (`helyek/page.tsx:25-28`).
+
+---
+
+## FÁZIS B – Statisztika / dashboard lassú lekérdezések 🔴
+
+- [x] **B1+B2** 🔴 A beszállító- és vevő-rangsor átkerült a `dashboard_data()` RPC-be
+  (top 10, `sum()/group by`). A `statisztika/page.tsx` már **egyetlen** RPC-hívást csinál;
+  a két teljes `movement_log` lekérdezés és a JS `rangsor()` törölve. ✅ kód kész, tsc+eslint zöld.
+  **Új migráció:** `supabase/migrations/20260725100000_dashboard_perf.sql` – ✅ **ALKALMAZVA** (Supabase Management API-n keresztül, 2026-07-25; ellenőrizve: az új kulcsok + dátumkorlát benne).
+- [x] **B3** 🔴 `dashboard_data()` idősor alszűrői dátumkorlátot kaptak (`created_at >= current_date - interval '29 days'`).
+  Ugyanabban a migrációban. ✅ alkalmazva.
+- [ ] **B4** 🟡 `dashboard.sql:21-64` – 7 külön `stock_items` scan (keszletertek, puffer, kigyujtve stb.).
+  Vond össze feltételes aggregációval. **HALASZTVA**: kis, on-hand méretű tábla, `statusz`-index gyors, kockázat/haszon most nem éri meg.
+
+---
+
+## FÁZIS C – Tranzakciók oldal 🔴
+
+- [x] **C1** 🔴 `tranzakciok/page.tsx` – `count:'exact'` → `count:'estimated'` (nagy táblán planner-becslés,
+  kis táblán pontos; nincs teljes `COUNT(*)` minden betöltéskor). ✅ kész, tsc zöld.
+- [ ] **C2** 🟡 `tranzakciok/page.tsx:112` – a `profiles` külön lekérdezés helyett join a fő
+  selectbe (`profiles(nev)`), 1 körrel kevesebb. (Megj.: FK a `auth.users`-re megy, ellenőrizni kell az embed-elhetőséget; ha nem megy, marad a külön lekérdezés.)
+- [ ] **C3** 🟡 `loading.tsx` a `tranzakciok` szegmensbe (lásd F fázis).
+
+---
+
+## FÁZIS D – Service worker / kliens-bundle / assetek 🔴🟡
+
+- [x] **D1** 🔴 `public/sw.js` – az 1 MB-os `zxing_reader.wasm` kikerült a `PRECACHE`-ből;
+  futásidejű cache-first szabály `.wasm`-ra (első valós használatkor cache-eli); `CACHE` verzió
+  `dw-static-v1` → `dw-static-v2`, hogy a régi 1 MB-os precache aktiváláskor törlődjön. ✅ kész.
+  **⚠️ `Scanner.tsx` / `ScanButton.tsx` / felismerő logika NEM változott. iOS-en tesztelni élesítés előtt (ott fut a WASM fallback).**
+- [ ] **D2** 🔴 Képoptimalizálás – nyers `<img>` helyett `next/image`:
+  - `next.config.ts`: `images.remotePatterns` a Supabase storage hosthoz + `*.openfoodfacts.org`.
+  - `termekek/page.tsx:157` (terméklista – soronként ismétlődik, **prioritás**), `ProductForm.tsx:190`, `OpenFoodFactsCard.tsx:275`.
+  - Minimum-verzió (ha nem optimalizálón át): `loading="lazy"` + `decoding="async"` + fix `width`/`height`.
+- [ ] **D3** 🟡 `app/layout.tsx:70` – `InstallPrompt` (254 sor, kliens) minden oldalra betöltődik
+  (login előtt is). Töltsd `next/dynamic(..., { ssr:false })`-szal.
+- [ ] **D4** 🟡 supabase-js kivétele a kliens-bundle-ből – csak Storage-feltöltéshez van behúzva:
+  `BevetelezesWizard.tsx:6`, `SelejtezesList.tsx:5`, `BevetelezesForm.tsx:5`. Told server actionbe,
+  vagy `import()`-tal a handleren belül.
+- [ ] **D5** 🟢 `next.config.ts`: `experimental.optimizePackageImports: ['@supabase/supabase-js','@supabase/ssr']`.
+
+---
+
+## FÁZIS E – Törzsadat-cache (ritkán változó adatok) 🟡
+
+> Fontos: `export const revalidate` itt **nem** működik, mert a `cookies()` dinamikussá
+> teszi az oldalt. Helyette `unstable_cache` (cookie-mentes klienssel) + `revalidateTag`.
+
+- [ ] **E1** 🟡 `suppliers` cache-elése – olvasás: `beszallitok/page.tsx:8`, dropdown:
+  `termekek/page.tsx:39`, `termekek/[id]:25`, `bevetelezes/page.tsx:18`, `munka/bevetelezes/page.tsx:18`.
+  Helper `lib/suppliers.ts`-be, `revalidateTag('suppliers')` a `beszallitok/actions.ts`-be.
+- [ ] **E2** 🟡 `locations` cache – `helyek/page.tsx:20`, `betarolas:37`, `atrarolas:41`, `cimkek:26` + wizardok. Tag: `locations`.
+- [ ] **E3** 🟡 `products`/`product_units` katalógus cache – `termekek/page.tsx:45`, bevételezés unit-lista. Tag: `products`.
+- [ ] **E4** 🟡 `company_settings` cache – `beallitasok/page.tsx:8` és `szallitolevel/page.tsx:63` (nyomtatásonként újraolvassa). Tag: `company_settings`.
+
+---
+
+## FÁZIS F – Perceived speed: loading / error boundaries 🔴
+
+> Jelenleg **sehol** nincs `loading.tsx` / `error.tsx` / `<Suspense>` → minden
+> navigációnál üres képernyő a DB-válaszig. Nagy "gyorsabb" érzet kis munkával.
+
+- [ ] **F1** 🔴 `app/(admin)/loading.tsx` alap skeleton.
+- [ ] **F2** 🔴 Saját `loading.tsx` a nehéz oldalakra: `statisztika`, `tranzakciok`, `termekek`, `helyek`, `beszallitok`.
+- [ ] **F3** 🟡 `app/(admin)/error.tsx` és `app/(wizard)/error.tsx` – hibás Supabase-hívás visszaállítható boundaryt kapjon.
+- [ ] **F4** 🟡 `statisztika`: a két nehéz `movement_log` rangsort külön `<Suspense>`-be, hogy a KPI-k azonnal megjelenjenek, a rangsorok utána streamelődjenek (B2 után részben tárgytalan).
+- [ ] **F5** 🟡 Wizard belépő oldalak (`munka/*/page.tsx`) loading skeletonja.
+
+---
+
+## FÁZIS G – Írási műveletek / round-trip csökkentés 🟡
+
+- [ ] **G1** 🟡 `termekek/actions.ts:212-225` – N+1 írás (kiszerelésenként külön update/insert).
+  Gyűjtsd tömbbe és egy `upsert`-tel írd ki (a delete-tel együtt O(1) kör).
+- [ ] **G2** 🟡 `bevetelezes/actions.ts:44` – felesleges plusz kör a `sorszam`-ért az RPC után.
+  A `create_bevetelezes` (`stock_rpcs.sql:391`) adja vissza a `sorszam`-ot (jsonb `{id, sorszam}`), a follow-up törölhető.
+- [ ] **G3** 🟢 `termekek/actions.ts:264-267` – exact count létezés-ellenőrzésre.
+  Váltás `.select('id',{head:true}).limit(1)`-re vagy FK RESTRICT hibára támaszkodni.
+
+---
+
+## FÁZIS H – Lapozás / over-fetch 🟡🟢
+
+- [ ] **H1** 🟡 Korlátlan készletlisták (`.limit()`/lapozás nélkül): `betarolas/page.tsx:28`,
+  `kigyujtes:27`, `kiadas:24`, `atrarolas:32`, `selejtezes:38` + wizard-párjaik.
+  Adj `.range()` lapozást (mint a `tranzakciok`-nál) vagy "továbbiak betöltése". A2 indexekkel párban.
+- [ ] **H2** 🟢 `select('*')` szűkítése a renderelt oszlopokra: `helyek/page.tsx:22`,
+  `cimkek:27`, suppliers-dropdownok (`id, nev` elég): `bevetelezes/page.tsx:18`, `munka/bevetelezes:18`, `termekek/uj:9`.
+
+---
+
+## FÁZIS I – Ellenőrzés / infra (opcionális) 🟢
+
+- [ ] **I1** 🟢 Megerősíteni, hogy a Supabase projekt **aszimmetrikus (ES256) JWT** kulcsot használ,
+  különben a `getClaims()` hálózati `getUser()`-re esik vissza minden requestnél (`lib/supabase/proxy.ts:44`).
+- [ ] **I2** 🟢 Fluid Compute bekapcsolása (Vercel → Functions) – kisebb cold start (~1.3s → kevesebb). Ingyenes.
+- [ ] **I3** 🟢 Régió-újraellenőrzés deploy után az `x-vercel-id` fejléccel (`fra1::fra1` a jó minta egy hitelesített adatoldalon).
+
+---
+
+## Javasolt sorrend
+
+1. **A fázis** (indexek) – 1 migráció, azonnal hat, semmit nem tör el.
+2. **C1 + D1** – egysoros nagy nyeremények (count → planned; 1 MB WASM kivétele).
+3. **B fázis** – statisztika párhuzamosítás + dátum-bound.
+4. **F1–F2** – loading skeletonok (érezhető gyorsulás).
+5. **D2** – képoptimalizálás (terméklista először).
+6. **E fázis** – törzsadat-cache (nagyobb átalakítás, de tartós nyereség).
+7. **G / H / I** – ráérős finomítások.
