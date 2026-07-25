@@ -106,11 +106,13 @@
 > Jelenleg **sehol** nincs `loading.tsx` / `error.tsx` / `<Suspense>` → minden
 > navigációnál üres képernyő a DB-válaszig. Nagy "gyorsabb" érzet kis munkával.
 
-- [ ] **F1** 🔴 `app/(admin)/loading.tsx` alap skeleton.
-- [ ] **F2** 🔴 Saját `loading.tsx` a nehéz oldalakra: `statisztika`, `tranzakciok`, `termekek`, `helyek`, `beszallitok`.
-- [ ] **F3** 🟡 `app/(admin)/error.tsx` és `app/(wizard)/error.tsx` – hibás Supabase-hívás visszaállítható boundaryt kapjon.
-- [ ] **F4** 🟡 `statisztika`: a két nehéz `movement_log` rangsort külön `<Suspense>`-be, hogy a KPI-k azonnal megjelenjenek, a rangsorok utána streamelődjenek (B2 után részben tárgytalan).
-- [ ] **F5** 🟡 Wizard belépő oldalak (`munka/*/page.tsx`) loading skeletonja.
+- [x] **F1** 🔴 `app/(admin)/loading.tsx` alap skeleton. ✅
+- [x] **F2** 🔴 Saját `loading.tsx`: `statisztika` (KPI + kártyarács), `tranzakciok` (szűrő + táblázat-váz).
+  A `termekek`/`helyek`/`beszallitok` a szegmens-szintű `(admin)/loading.tsx`-et örökli (kártyalista skeleton). ✅
+- [x] **F3** 🟡 `app/(admin)/error.tsx` és `app/(wizard)/error.tsx` – visszaállítható boundary (reset + újratöltés). ✅
+- [~] **F4** 🟡 `statisztika` `<Suspense>`: **tárgytalan** – B2 után egyetlen RPC-hívás van, nincs külön streamelendő nehéz lekérdezés. A `statisztika/loading.tsx` fedi a várakozást.
+- [x] **F5** 🟡 `app/(wizard)/loading.tsx` – teljes képernyős töltésjelző a wizard-lépésekhez. ✅
+  (build zöld, tsc+eslint zöld)
 
 ---
 
