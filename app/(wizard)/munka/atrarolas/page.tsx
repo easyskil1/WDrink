@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { getActiveLocations } from '@/lib/cached-data'
+import { getActiveLocations, getKeszletListaLimit } from '@/lib/cached-data'
+import { ListLimitNotice } from '@/components/ListLimitNotice'
 import { AtrarolasWizard } from './AtrarolasWizard'
 
 type StockRow = {
@@ -29,6 +30,7 @@ export type LocationOption = { id: string; teljes_kod: string }
 
 export default async function AtrarolasWizardPage() {
   const supabase = await createClient()
+  const limit = await getKeszletListaLimit()
 
   const [{ data: stockData }, locations] = await Promise.all([
     supabase
@@ -38,11 +40,14 @@ export default async function AtrarolasWizardPage() {
       )
       .eq('statusz', 'betarolva')
       .gt('mennyiseg_alapegysegben', 0)
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true })
+      .limit(limit),
     getActiveLocations(),
   ])
 
-  const items: BetaroltItem[] = ((stockData ?? []) as unknown as StockRow[]).map(
+  const rows = (stockData ?? []) as unknown as StockRow[]
+  const truncated = rows.length >= limit
+  const items: BetaroltItem[] = rows.map(
     (s) => ({
       id: s.id,
       product_nev: s.products?.nev ?? '(ismeretlen)',
@@ -56,5 +61,14 @@ export default async function AtrarolasWizardPage() {
     })
   )
 
-  return <AtrarolasWizard items={items} locations={locations} />
+  return (
+    <>
+      {truncated && (
+        <div className="px-4 pt-4">
+          <ListLimitNotice limit={limit} />
+        </div>
+      )}
+      <AtrarolasWizard items={items} locations={locations} />
+    </>
+  )
 }

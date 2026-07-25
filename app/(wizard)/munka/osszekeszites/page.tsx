@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { getKeszletListaLimit } from '@/lib/cached-data'
+import { ListLimitNotice } from '@/components/ListLimitNotice'
 import { OsszekeszitesWizard } from './OsszekeszitesWizard'
 
 type StockRow = {
@@ -25,6 +27,7 @@ export type BetaroltItem = {
 
 export default async function OsszekeszitesWizardPage() {
   const supabase = await createClient()
+  const limit = await getKeszletListaLimit()
   const { data } = await supabase
     .from('stock_items')
     .select(
@@ -33,8 +36,10 @@ export default async function OsszekeszitesWizardPage() {
     .eq('statusz', 'betarolva')
     .gt('mennyiseg_alapegysegben', 0)
     .order('lejarat_datum', { ascending: true, nullsFirst: false })
+    .limit(limit)
 
   const rows = (data ?? []) as unknown as StockRow[]
+  const truncated = rows.length >= limit
 
   // Termékenként az első (legkorábbi lejáratú) tétel a FEFO-ajánlott.
   const seen = new Set<string>()
@@ -60,5 +65,14 @@ export default async function OsszekeszitesWizardPage() {
       (a.lejarat_datum ?? '9999').localeCompare(b.lejarat_datum ?? '9999')
   )
 
-  return <OsszekeszitesWizard items={items} />
+  return (
+    <>
+      {truncated && (
+        <div className="px-4 pt-4">
+          <ListLimitNotice limit={limit} />
+        </div>
+      )}
+      <OsszekeszitesWizard items={items} />
+    </>
+  )
 }

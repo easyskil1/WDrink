@@ -141,9 +141,12 @@
 
 ## FÁZIS H – Lapozás / over-fetch 🟡🟢
 
-- [ ] **H1** 🟡 Korlátlan készletlisták (`.limit()`/lapozás nélkül): `betarolas/page.tsx:28`,
-  `kigyujtes:27`, `kiadas:24`, `atrarolas:32`, `selejtezes:38` + wizard-párjaik.
-  Adj `.range()` lapozást (mint a `tranzakciok`-nál) vagy "továbbiak betöltése". A2 indexekkel párban.
+- [x] **H1** 🟡 Készletlisták felső korlátja **Cégadatokban állítható** (`keszlet_lista_limit`,
+  default 500, DB-oszlop + migráció `20260725110000`, Management API-n alkalmazva). Minden
+  munkalista (`betarolas`, `kigyujtes`, `kiadas`, `atrarolas`, `selejtezes` + mind az 5 wizard)
+  `.limit(limit)`-tel tölt, és ha eléri a korlátot, **látható figyelmeztetést** mutat
+  (`components/ListLimitNotice.tsx`) - nincs néma levágás. A limitet a cache-elt `getCompanySettings`-ből
+  olvassa (`getKeszletListaLimit`), így nincs plusz DB-kör. ✅ (tsc + build zöld)
 - [ ] **H2** 🟢 `select('*')` szűkítése a renderelt oszlopokra: `helyek/page.tsx:22`,
   `cimkek:27`, suppliers-dropdownok (`id, nev` elég): `bevetelezes/page.tsx:18`, `munka/bevetelezes:18`, `termekek/uj:9`.
 

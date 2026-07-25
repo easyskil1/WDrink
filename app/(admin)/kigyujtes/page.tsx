@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { getKeszletListaLimit } from '@/lib/cached-data'
+import { ListLimitNotice } from '@/components/ListLimitNotice'
 import { KigyujtesList } from './KigyujtesList'
 
 type StockRow = {
@@ -24,6 +26,7 @@ export type BetaroltItem = {
 
 export default async function KigyujtesPage() {
   const supabase = await createClient()
+  const limit = await getKeszletListaLimit()
   const { data } = await supabase
     .from('stock_items')
     .select(
@@ -32,8 +35,10 @@ export default async function KigyujtesPage() {
     .eq('statusz', 'betarolva')
     .gt('mennyiseg_alapegysegben', 0)
     .order('lejarat_datum', { ascending: true, nullsFirst: false })
+    .limit(limit)
 
   const rows = (data ?? []) as unknown as StockRow[]
+  const truncated = rows.length >= limit
 
   // Termékenként az első (legkorábbi lejáratú) tétel a FEFO-ajánlott.
   const seen = new Set<string>()
@@ -66,6 +71,8 @@ export default async function KigyujtesPage() {
         Betárolt tételek kigyűjtése. A rendszer a legkorábbi lejáratú tételt
         ajánlja (FEFO).
       </p>
+
+      {truncated && <ListLimitNotice limit={limit} />}
 
       <div className="mt-6">
         <KigyujtesList items={items} />

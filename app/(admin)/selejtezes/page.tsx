@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { STOCK_STATUSZ_LABEL, type StockStatusz } from '@/lib/stock'
+import { getKeszletListaLimit } from '@/lib/cached-data'
+import { ListLimitNotice } from '@/components/ListLimitNotice'
 import { SelejtezesList } from './SelejtezesList'
 
 type StockRow = {
@@ -34,6 +36,7 @@ export default async function SelejtezesPage({
 }) {
   const sp = await searchParams
   const supabase = await createClient()
+  const limit = await getKeszletListaLimit()
 
   let query = supabase
     .from('stock_items')
@@ -46,9 +49,12 @@ export default async function SelejtezesPage({
 
   const q = sp.q?.trim()
   if (q) query = query.ilike('products.nev', `%${q}%`)
+  query = query.limit(limit)
 
   const { data } = await query
-  const items: OnHandItem[] = ((data ?? []) as unknown as StockRow[]).map((s) => ({
+  const rows = (data ?? []) as unknown as StockRow[]
+  const truncated = rows.length >= limit
+  const items: OnHandItem[] = rows.map((s) => ({
     id: s.id,
     product_nev: s.products?.nev ?? '(ismeretlen)',
     kiszereles: s.product_units?.kiszereles ?? '',
@@ -82,6 +88,8 @@ export default async function SelejtezesPage({
           Keresés
         </button>
       </form>
+
+      {truncated && <ListLimitNotice limit={limit} />}
 
       <div className="mt-4">
         <SelejtezesList items={items} />

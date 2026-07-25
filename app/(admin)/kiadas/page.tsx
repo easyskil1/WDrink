@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { getKeszletListaLimit } from '@/lib/cached-data'
+import { ListLimitNotice } from '@/components/ListLimitNotice'
 import { KiadasForm } from './KiadasForm'
 
 type StockRow = {
@@ -21,6 +23,7 @@ export type PickedItem = {
 
 export default async function KiadasPage() {
   const supabase = await createClient()
+  const limit = await getKeszletListaLimit()
   const { data } = await supabase
     .from('stock_items')
     .select(
@@ -29,8 +32,11 @@ export default async function KiadasPage() {
     .eq('statusz', 'kigyujtve')
     .gt('mennyiseg_alapegysegben', 0)
     .order('created_at', { ascending: true })
+    .limit(limit)
 
-  const items: PickedItem[] = ((data ?? []) as unknown as StockRow[]).map((s) => ({
+  const rows = (data ?? []) as unknown as StockRow[]
+  const truncated = rows.length >= limit
+  const items: PickedItem[] = rows.map((s) => ({
     id: s.id,
     product_nev: s.products?.nev ?? '(ismeretlen)',
     kiszereles: s.product_units?.kiszereles ?? '',
@@ -45,6 +51,8 @@ export default async function KiadasPage() {
       <p className="mt-1 text-sm text-slate-500">
         Kigyűjtött tételek összesítése egy kiszállítási bizonylatba, szállítólevéllel.
       </p>
+
+      {truncated && <ListLimitNotice limit={limit} />}
 
       <div className="mt-6">
         <KiadasForm

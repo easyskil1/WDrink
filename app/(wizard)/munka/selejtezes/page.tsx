@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { STOCK_STATUSZ_LABEL, type StockStatusz } from '@/lib/stock'
+import { getKeszletListaLimit } from '@/lib/cached-data'
+import { ListLimitNotice } from '@/components/ListLimitNotice'
 import { SelejtezesWizard } from './SelejtezesWizard'
 
 type StockRow = {
@@ -28,6 +30,7 @@ export type OnHandItem = {
 
 export default async function SelejtezesWizardPage() {
   const supabase = await createClient()
+  const limit = await getKeszletListaLimit()
   const { data } = await supabase
     .from('stock_items')
     .select(
@@ -36,8 +39,11 @@ export default async function SelejtezesWizardPage() {
     .in('statusz', ['puffer', 'betarolva', 'kigyujtve'])
     .gt('mennyiseg_alapegysegben', 0)
     .order('created_at', { ascending: true })
+    .limit(limit)
 
-  const items: OnHandItem[] = ((data ?? []) as unknown as StockRow[]).map((s) => ({
+  const rows = (data ?? []) as unknown as StockRow[]
+  const truncated = rows.length >= limit
+  const items: OnHandItem[] = rows.map((s) => ({
     id: s.id,
     product_nev: s.products?.nev ?? '(ismeretlen)',
     kiszereles: s.product_units?.kiszereles ?? '',
@@ -50,5 +56,14 @@ export default async function SelejtezesWizardPage() {
     vonalkod: s.product_units?.vonalkod ?? null,
   }))
 
-  return <SelejtezesWizard items={items} />
+  return (
+    <>
+      {truncated && (
+        <div className="px-4 pt-4">
+          <ListLimitNotice limit={limit} />
+        </div>
+      )}
+      <SelejtezesWizard items={items} />
+    </>
+  )
 }

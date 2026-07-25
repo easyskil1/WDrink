@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { getActiveLocations } from '@/lib/cached-data'
+import { getActiveLocations, getKeszletListaLimit } from '@/lib/cached-data'
+import { ListLimitNotice } from '@/components/ListLimitNotice'
 import { BetarolasWizard } from './BetarolasWizard'
 
 type StockRow = {
@@ -25,6 +26,7 @@ export type LocationOption = { id: string; teljes_kod: string; tipus: string }
 
 export default async function BetarolasWizardPage() {
   const supabase = await createClient()
+  const limit = await getKeszletListaLimit()
 
   const [{ data: stockData }, locations] = await Promise.all([
     supabase
@@ -34,11 +36,14 @@ export default async function BetarolasWizardPage() {
       )
       .eq('statusz', 'puffer')
       .gt('mennyiseg_alapegysegben', 0)
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true })
+      .limit(limit),
     getActiveLocations(),
   ])
 
-  const items: PufferItem[] = ((stockData ?? []) as unknown as StockRow[]).map(
+  const rows = (stockData ?? []) as unknown as StockRow[]
+  const truncated = rows.length >= limit
+  const items: PufferItem[] = rows.map(
     (s) => ({
       id: s.id,
       lot_szam: s.lot_szam,
@@ -50,5 +55,14 @@ export default async function BetarolasWizardPage() {
     })
   )
 
-  return <BetarolasWizard items={items} locations={locations} />
+  return (
+    <>
+      {truncated && (
+        <div className="px-4 pt-4">
+          <ListLimitNotice limit={limit} />
+        </div>
+      )}
+      <BetarolasWizard items={items} locations={locations} />
+    </>
+  )
 }

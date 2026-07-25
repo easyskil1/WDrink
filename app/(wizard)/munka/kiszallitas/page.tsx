@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { getKeszletListaLimit } from '@/lib/cached-data'
+import { ListLimitNotice } from '@/components/ListLimitNotice'
 import { KiszallitasWizard } from './KiszallitasWizard'
 
 type StockRow = {
@@ -21,6 +23,7 @@ export type PickedItem = {
 
 export default async function KiszallitasWizardPage() {
   const supabase = await createClient()
+  const limit = await getKeszletListaLimit()
   const { data } = await supabase
     .from('stock_items')
     .select(
@@ -29,8 +32,11 @@ export default async function KiszallitasWizardPage() {
     .eq('statusz', 'kigyujtve')
     .gt('mennyiseg_alapegysegben', 0)
     .order('created_at', { ascending: true })
+    .limit(limit)
 
-  const items: PickedItem[] = ((data ?? []) as unknown as StockRow[]).map((s) => ({
+  const rows = (data ?? []) as unknown as StockRow[]
+  const truncated = rows.length >= limit
+  const items: PickedItem[] = rows.map((s) => ({
     id: s.id,
     product_nev: s.products?.nev ?? '(ismeretlen)',
     kiszereles: s.product_units?.kiszereles ?? '',
@@ -40,9 +46,16 @@ export default async function KiszallitasWizardPage() {
   }))
 
   return (
-    <KiszallitasWizard
-      items={items}
-      defaultDatum={new Date().toISOString().slice(0, 10)}
-    />
+    <>
+      {truncated && (
+        <div className="px-4 pt-4">
+          <ListLimitNotice limit={limit} />
+        </div>
+      )}
+      <KiszallitasWizard
+        items={items}
+        defaultDatum={new Date().toISOString().slice(0, 10)}
+      />
+    </>
   )
 }
