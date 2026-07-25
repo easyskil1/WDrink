@@ -41,6 +41,7 @@ export type Product = {
   kn_kod: string | null
   fajtakod: string | null
   min_keszlet: number
+  kep_url: string | null
   aktiv: boolean
   created_at: string
   updated_at: string

@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   // és megjegyzett kamera-engedély).
   appleWebApp: {
     capable: true,
-    title: "Drink World",
+    title: "WDrinks",
     statusBarStyle: "black-translucent",
   },
 };

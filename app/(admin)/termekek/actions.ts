@@ -60,6 +60,7 @@ function parseProduct(formData: FormData) {
     kn_kod: String(formData.get('kn_kod') ?? '').trim() || null,
     fajtakod: String(formData.get('fajtakod') ?? '').trim() || null,
     min_keszlet: Math.max(0, Math.trunc(num(formData.get('min_keszlet')) ?? 0)),
+    kep_url: String(formData.get('kep_url') ?? '').trim() || null,
     aktiv: formData.get('aktiv') === 'on',
   }
 }
@@ -247,4 +248,126 @@ export async function toggleProductActive(id: string, aktiv: boolean) {
   const supabase = await createClient()
   await supabase.from('products').update({ aktiv }).eq('id', id)
   revalidatePath('/termekek')
+}
+
+export type DeleteProductResult = { ok: true } | { ok: false; error: string }
+
+/**
+ * Termék végleges törlése. Csak akkor engedjük, ha nincs készlet-/mozgáselőzménye
+ * (a stock_items FK RESTRICT, ráadásul jövedéki/NAV audit-nyom miatt sem szabad
+ * törölni ilyet). A kiszerelések (product_units) a termékkel együtt törlődnek
+ * (ON DELETE CASCADE).
+ */
+export async function deleteProduct(id: string): Promise<DeleteProductResult> {
+  const supabase = await createClient()
+
+  const { count } = await supabase
+    .from('stock_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('product_id', id)
+
+  if ((count ?? 0) > 0) {
+    return {
+      ok: false,
+      error:
+        'Ennek a terméknek van készlet-/mozgáselőzménye, ezért nem törölhető. Deaktiváld helyette.',
+    }
+  }
+
+  const { error } = await supabase.from('products').delete().eq('id', id)
+  if (error) return { ok: false, error: 'Törlési hiba: ' + error.message }
+
+  revalidatePath('/termekek')
+  return { ok: true }
+}
+
+/**
+ * Open Food Facts találat mentése a saját adatbázisba.
+ * Létrehoz egy terméket + (ha van vonalkód/űrtartalom) egy 'palack' kiszerelést.
+ * A tényleges OFF API-hívás a kliensoldali kártyában történik, ide már csak a
+ * kigyűjtött mezők érkeznek.
+ */
+export type OffProductInput = {
+  nev: string
+  kategoria: string | null
+  alkoholtartalom: number | null
+  kep_url: string | null
+  vonalkod: string | null
+  netto_urtartalom: number | null
+  urtartalom_egyseg: UrtartalomEgyseg | null
+}
+
+export type AddFromOffResult =
+  | { ok: true; id: string }
+  | { ok: false; error: string; existingProductId?: string }
+
+export async function addProductFromOFF(
+  input: OffProductInput
+): Promise<AddFromOffResult> {
+  const nev = String(input?.nev ?? '').trim()
+  if (!nev) return { ok: false, error: 'A termék neve hiányzik.' }
+
+  const vonalkod = String(input?.vonalkod ?? '').trim() || null
+  const egyseg = input?.urtartalom_egyseg
+  const netto_urtartalom = num(input?.netto_urtartalom)
+
+  const supabase = await createClient()
+
+  // Vonalkód-egyediség: ha már szerepel, ne hozzunk létre duplikátumot.
+  if (vonalkod) {
+    const { data: existing } = await supabase
+      .from('product_units')
+      .select('product_id')
+      .eq('vonalkod', vonalkod)
+      .maybeSingle()
+    if (existing) {
+      return {
+        ok: false,
+        error: `Ez a vonalkód (${vonalkod}) már szerepel az adatbázisban.`,
+        existingProductId: existing.product_id as string,
+      }
+    }
+  }
+
+  const { data: product, error } = await supabase
+    .from('products')
+    .insert({
+      nev,
+      kategoria: String(input?.kategoria ?? '').trim() || null,
+      alkoholtartalom: num(input?.alkoholtartalom),
+      kep_url: String(input?.kep_url ?? '').trim() || null,
+      jovedeki: false,
+      min_keszlet: 0,
+      aktiv: true,
+    })
+    .select('id')
+    .single()
+  if (error || !product) {
+    return { ok: false, error: 'Mentési hiba: ' + (error?.message ?? 'ismeretlen') }
+  }
+
+  // Ha van vonalkód vagy űrtartalom, hozzunk létre egy alap palack-kiszerelést.
+  if (vonalkod || netto_urtartalom != null) {
+    const { error: uErr } = await supabase.from('product_units').insert({
+      product_id: product.id,
+      kiszereles: 'palack',
+      vonalkod,
+      mennyiseg_alapegysegben: 1,
+      netto_urtartalom,
+      urtartalom_egyseg: egyseg === 'ml' || egyseg === 'l' ? egyseg : null,
+      netto_ar: null,
+      brutto_ar: null,
+      afa_kulcs: 27,
+      beszerzesi_ar: null,
+      betetdij_tipus: 'nincs',
+      betetdij_osszeg: 0,
+    })
+    if (uErr) {
+      await supabase.from('products').delete().eq('id', product.id)
+      return { ok: false, error: 'Kiszerelés mentési hiba: ' + uErr.message }
+    }
+  }
+
+  revalidatePath('/termekek')
+  return { ok: true, id: product.id as string }
 }

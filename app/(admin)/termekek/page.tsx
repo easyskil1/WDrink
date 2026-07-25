@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { KISZERELES_LABEL, type KiszerelesTipus } from '@/lib/products'
 import type { Supplier } from '@/lib/suppliers'
 import { toggleProductActive } from './actions'
+import OpenFoodFactsCard from './OpenFoodFactsCard'
+import { DeleteProductButton } from './DeleteProductButton'
 
 type SearchParams = Promise<{
   q?: string
@@ -16,6 +18,7 @@ type Row = {
   kategoria: string | null
   jovedeki: boolean
   aktiv: boolean
+  kep_url: string | null
   gyarto_beszallito_id: string | null
   product_units: {
     id: string
@@ -42,7 +45,7 @@ export default async function ProductsPage({
   let query = supabase
     .from('products')
     .select(
-      'id, nev, kategoria, jovedeki, aktiv, gyarto_beszallito_id, product_units(id, kiszereles, vonalkod, brutto_ar)'
+      'id, nev, kategoria, jovedeki, aktiv, kep_url, gyarto_beszallito_id, product_units(id, kiszereles, vonalkod, brutto_ar)'
     )
     .order('nev', { ascending: true })
 
@@ -84,6 +87,9 @@ export default async function ProductsPage({
           + Új termék
         </Link>
       </div>
+
+      {/* Open Food Facts - legördülő kereső kártya */}
+      <OpenFoodFactsCard />
 
       {/* Szűrő */}
       <form
@@ -145,7 +151,20 @@ export default async function ProductsPage({
             key={p.id}
             className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-3">
+              {p.kep_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.kep_url}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded object-contain"
+                />
+              ) : (
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-slate-100 text-slate-300">
+                  ?
+                </div>
+              )}
+              <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-slate-900">{p.nev}</span>
                 {p.jovedeki && (
@@ -167,8 +186,9 @@ export default async function ProductsPage({
                       .join(', ')
                   : 'nincs kiszerelés'}
               </p>
+              </div>
             </div>
-            <div className="flex shrink-0 gap-3">
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
               <Link
                 href={`/termekek/${p.id}`}
                 className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
@@ -183,6 +203,7 @@ export default async function ProductsPage({
                   {p.aktiv ? 'Deaktivál' : 'Aktivál'}
                 </button>
               </form>
+              <DeleteProductButton id={p.id} />
             </div>
           </li>
         ))}

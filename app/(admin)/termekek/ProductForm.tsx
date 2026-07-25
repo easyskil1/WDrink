@@ -95,6 +95,7 @@ export function ProductForm({
   >(action, {})
 
   const [jovedeki, setJovedeki] = useState(initial?.jovedeki ?? false)
+  const [kepUrl, setKepUrl] = useState(initial?.kep_url ?? '')
   const [units, setUnits] = useState<UnitRow[]>(
     initialUnits && initialUnits.length > 0
       ? initialUnits.map(toRow)
@@ -173,6 +174,30 @@ export function ProductForm({
               className={input}
             />
           </label>
+          <div className="flex items-end gap-3 sm:col-span-2">
+            <label className={`${label} flex-1`}>
+              Kép URL
+              <input
+                name="kep_url"
+                value={kepUrl}
+                onChange={(e) => setKepUrl(e.target.value)}
+                placeholder="https://…"
+                className={input}
+              />
+            </label>
+            {kepUrl.trim() ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={kepUrl}
+                alt=""
+                className="h-14 w-14 shrink-0 rounded border border-slate-200 object-contain"
+              />
+            ) : (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded border border-slate-200 bg-slate-100 text-slate-300">
+                ?
+              </div>
+            )}
+          </div>
         </div>
 
         <label className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-700">
