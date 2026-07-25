@@ -154,8 +154,9 @@
 
 ## FÁZIS I – Ellenőrzés / infra (opcionális) 🟢
 
-- [ ] **I1** 🟢 Megerősíteni, hogy a Supabase projekt **aszimmetrikus (ES256) JWT** kulcsot használ,
-  különben a `getClaims()` hálózati `getUser()`-re esik vissza minden requestnél (`lib/supabase/proxy.ts:44`).
+- [x] **I1** 🟢 ✅ Megerősítve: a projekt **ES256 (aszimmetrikus)** kulcsot használ (`in_use`),
+  a régi HS256 csak `previously_used`. A JWKS ES256-ot publikál. → `getClaims()` lokálisan ellenőriz,
+  nincs hálózati kör requestenként. (Ellenőrizve: JWKS well-known + Management API signing-keys, 2026-07-25.)
 - [ ] **I2** 🟢 Fluid Compute bekapcsolása (Vercel → Functions) – kisebb cold start (~1.3s → kevesebb). Ingyenes.
 - [ ] **I3** 🟢 Régió-újraellenőrzés deploy után az `x-vercel-id` fejléccel (`fra1::fra1` a jó minta egy hitelesített adatoldalon).
 
