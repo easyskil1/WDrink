@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
-import { InstallPrompt } from "@/components/InstallPrompt";
+import { InstallPromptLazy } from "@/components/InstallPromptLazy";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -67,7 +67,7 @@ export default function RootLayout({
           <p className="text-sm opacity-70">Ez az alkalmazás álló nézetre készült.</p>
         </div>
         <ServiceWorkerRegister />
-        <InstallPrompt />
+        <InstallPromptLazy />
         <SpeedInsights />
       </body>
     </html>

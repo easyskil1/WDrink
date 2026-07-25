@@ -74,16 +74,17 @@
   futásidejű cache-first szabály `.wasm`-ra (első valós használatkor cache-eli); `CACHE` verzió
   `dw-static-v1` → `dw-static-v2`, hogy a régi 1 MB-os precache aktiváláskor törlődjön. ✅ kész.
   **⚠️ `Scanner.tsx` / `ScanButton.tsx` / felismerő logika NEM változott. iOS-en tesztelni élesítés előtt (ott fut a WASM fallback).**
-- [ ] **D2** 🔴 Képoptimalizálás – nyers `<img>` helyett `next/image`:
-  - `next.config.ts`: `images.remotePatterns` a Supabase storage hosthoz + `*.openfoodfacts.org`.
-  - `termekek/page.tsx:157` (terméklista – soronként ismétlődik, **prioritás**), `ProductForm.tsx:190`, `OpenFoodFactsCard.tsx:275`.
-  - Minimum-verzió (ha nem optimalizálón át): `loading="lazy"` + `decoding="async"` + fix `width`/`height`.
-- [ ] **D3** 🟡 `app/layout.tsx:70` – `InstallPrompt` (254 sor, kliens) minden oldalra betöltődik
-  (login előtt is). Töltsd `next/dynamic(..., { ssr:false })`-szal.
+- [x] **D2** 🔴 Képoptimalizálás – `<img>` marad (a `kep_url` **szabad szöveges**, bármilyen host lehet,
+  ezért a `next/image` allowlist futásidőben törne), de kapott `loading="lazy"` + `decoding="async"`
+  + fix `width`/`height`: `termekek/page.tsx` (lista), `OpenFoodFactsCard.tsx` (találatok), `ProductForm.tsx` (előnézet).
+  → lazy-load (soronként csak a látható képek) + nincs layout-ugrálás, minden hosttal. ✅
+  **Megj.:** ha később minden termékkép Supabase storage-ba kerül (egységes host), érdemes visszatérni a `next/image` optimalizálóra.
+- [x] **D3** 🟡 `InstallPrompt` külön, aszinkron chunkba (`components/InstallPromptLazy.tsx`,
+  `next/dynamic` + `ssr:false`); a root layout ezt hívja. ✅
 - [ ] **D4** 🟡 supabase-js kivétele a kliens-bundle-ből – csak Storage-feltöltéshez van behúzva:
   `BevetelezesWizard.tsx:6`, `SelejtezesList.tsx:5`, `BevetelezesForm.tsx:5`. Told server actionbe,
-  vagy `import()`-tal a handleren belül.
-- [ ] **D5** 🟢 `next.config.ts`: `experimental.optimizePackageImports: ['@supabase/supabase-js','@supabase/ssr']`.
+  vagy `import()`-tal a handleren belül. **HALASZTVA** (nagyobb refaktor; D5 részben enyhíti a bundle-t).
+- [x] **D5** 🟢 `next.config.ts`: `experimental.optimizePackageImports: ['@supabase/supabase-js','@supabase/ssr']`. ✅
 
 ---
 

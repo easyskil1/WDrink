@@ -190,6 +190,9 @@ export function ProductForm({
               <img
                 src={kepUrl}
                 alt=""
+                width={56}
+                height={56}
+                decoding="async"
                 className="h-14 w-14 shrink-0 rounded border border-slate-200 object-contain"
               />
             ) : (
