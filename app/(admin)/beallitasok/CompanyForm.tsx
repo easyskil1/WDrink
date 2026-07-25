@@ -9,7 +9,6 @@ export type CompanySettings = {
   cim: string | null
   jovedeki_engedelyszam: string | null
   felir_azonosito: string | null
-  keszlet_lista_limit: number
 }
 
 const input =
@@ -51,25 +50,6 @@ export function CompanyForm({ initial }: { initial: CompanySettings | null }) {
           defaultValue={initial?.felir_azonosito ?? ''}
           className={input}
         />
-      </label>
-
-      <label className={label}>
-        Készletlisták max. megjelenített tétel
-        <input
-          type="number"
-          name="keszlet_lista_limit"
-          min={50}
-          max={100000}
-          step={50}
-          defaultValue={initial?.keszlet_lista_limit ?? 500}
-          className={input}
-        />
-        <span className="text-xs font-normal text-slate-500">
-          A munkalisták (betárolás, kigyűjtés, kiszállítás, átrárolás, selejtezés)
-          legfeljebb ennyi tételt töltenek be a gyorsaság érdekében. Ha egy lista
-          eléri ezt a számot, figyelmeztetést mutat. Növeld, ha egyszerre több
-          tételt kell látnod (nagyobb szám = lassabb betöltés).
-        </span>
       </label>
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}

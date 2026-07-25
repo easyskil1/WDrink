@@ -1,6 +1,8 @@
 import { unstable_cache } from 'next/cache'
+import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Supplier } from '@/lib/suppliers'
+import { KESZLET_LIMIT_COOKIE, clampKeszletLimit } from '@/lib/deviceSettings'
 
 /**
  * Ritkán változó törzsadatok cache-elt olvasása (E fázis).
@@ -23,16 +25,16 @@ export type CompanySettings = {
   cim: string | null
   jovedeki_engedelyszam: string | null
   felir_azonosito: string | null
-  keszlet_lista_limit: number
 }
 
-/** Készletlisták felső megjelenítési korlátja (fallback, ha nincs beállítva). */
-export const DEFAULT_KESZLET_LISTA_LIMIT = 500
-
-/** A beállított készletlista-limit (cache-elt cégadatból), fallbackkel. */
+/**
+ * Készletlisták felső megjelenítési korlátja - ESZKÖZ-szintű, a Beállítások
+ * (/preferenciak) oldalon állítható, cookie-ban tárolva. A szerver kérésenként
+ * a cookie-ból olvassa (nem cache-elt, mert eszközönként/kérésenként eltér).
+ */
 export async function getKeszletListaLimit(): Promise<number> {
-  const cs = await getCompanySettings()
-  return cs?.keszlet_lista_limit ?? DEFAULT_KESZLET_LISTA_LIMIT
+  const c = await cookies()
+  return clampKeszletLimit(c.get(KESZLET_LIMIT_COOKIE)?.value)
 }
 
 export type ActiveLocation = {
@@ -58,9 +60,7 @@ export const getCompanySettings = unstable_cache(
     const supabase = createAdminClient()
     const { data } = await supabase
       .from('company_settings')
-      .select(
-        'cegnev, adoszam, cim, jovedeki_engedelyszam, felir_azonosito, keszlet_lista_limit'
-      )
+      .select('cegnev, adoszam, cim, jovedeki_engedelyszam, felir_azonosito')
       .eq('id', true)
       .maybeSingle()
     return (data ?? null) as CompanySettings | null

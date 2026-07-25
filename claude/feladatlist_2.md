@@ -141,12 +141,14 @@
 
 ## FÁZIS H – Lapozás / over-fetch 🟡🟢
 
-- [x] **H1** 🟡 Készletlisták felső korlátja **Cégadatokban állítható** (`keszlet_lista_limit`,
-  default 500, DB-oszlop + migráció `20260725110000`, Management API-n alkalmazva). Minden
-  munkalista (`betarolas`, `kigyujtes`, `kiadas`, `atrarolas`, `selejtezes` + mind az 5 wizard)
-  `.limit(limit)`-tel tölt, és ha eléri a korlátot, **látható figyelmeztetést** mutat
-  (`components/ListLimitNotice.tsx`) - nincs néma levágás. A limitet a cache-elt `getCompanySettings`-ből
-  olvassa (`getKeszletListaLimit`), így nincs plusz DB-kör. ✅ (tsc + build zöld)
+- [x] **H1** 🟡 Készletlisták felső korlátja **eszköz-szinten, a Beállítások (`/preferenciak`)
+  oldalon állítható** (default 500). Tárolás **cookie**-ban (`dw-keszlet-limit`), mert a
+  szervernek kérésenként olvasnia kell a lekérdezéshez (localStorage nem menne). Minden munkalista
+  (`betarolas`, `kigyujtes`, `kiadas`, `atrarolas`, `selejtezes` + mind az 5 wizard) `.limit(limit)`-tel
+  tölt (`getKeszletListaLimit` a cookie-ból), és ha eléri a korlátot, **látható figyelmeztetést** mutat
+  (`components/ListLimitNotice.tsx`) - nincs néma levágás. ✅ (tsc + build zöld)
+  > Megj.: eredetileg Cégadat/DB-oszlop volt; a felhasználó kérésére áttéve eszköz-szintű
+  > cookie-ra a Beállítások oldalra. A rövid életű `keszlet_lista_limit` DB-oszlop eldobva.
 - [ ] **H2** 🟢 `select('*')` szűkítése a renderelt oszlopokra: `helyek/page.tsx:22`,
   `cimkek:27`, suppliers-dropdownok (`id, nev` elég): `bevetelezes/page.tsx:18`, `munka/bevetelezes:18`, `termekek/uj:9`.
 
