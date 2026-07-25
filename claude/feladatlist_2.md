@@ -129,12 +129,13 @@
 
 ## FÁZIS G – Írási műveletek / round-trip csökkentés 🟡
 
-- [ ] **G1** 🟡 `termekek/actions.ts:212-225` – N+1 írás (kiszerelésenként külön update/insert).
-  Gyűjtsd tömbbe és egy `upsert`-tel írd ki (a delete-tel együtt O(1) kör).
-- [ ] **G2** 🟡 `bevetelezes/actions.ts:44` – felesleges plusz kör a `sorszam`-ért az RPC után.
-  A `create_bevetelezes` (`stock_rpcs.sql:391`) adja vissza a `sorszam`-ot (jsonb `{id, sorszam}`), a follow-up törölhető.
-- [ ] **G3** 🟢 `termekek/actions.ts:264-267` – exact count létezés-ellenőrzésre.
-  Váltás `.select('id',{head:true}).limit(1)`-re vagy FK RESTRICT hibára támaszkodni.
+- [x] **G1** 🟡 `termekek/actions.ts` – a kiszerelés-írás egyetlen `upsert`-re cserélve
+  (meglévők frissülnek id alapján, újak beszúródnak). N kör helyett 1. ✅
+- [ ] **G2** 🟡 `bevetelezes/actions.ts` – plusz kör a `sorszam`-ért az RPC után.
+  **HALASZTVA**: a `create_bevetelezes` return típusát kellene uuid→jsonb-re váltani, ami éles
+  függvény DROP+CREATE-et igényel, a haszna viszont 1 kör egy ritka, kézi mentés-műveleten. Nem éri meg most.
+- [x] **G3** 🟢 `termekek/actions.ts` – létezés-ellenőrzés exact count helyett
+  `.select('id').limit(1).maybeSingle()` (index-backed, olcsóbb). ✅
 
 ---
 

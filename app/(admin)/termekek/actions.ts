@@ -209,19 +209,18 @@ export async function updateProduct(
     await supabase.from('product_units').delete().in('id', toDelete)
   }
 
-  for (const u of units) {
-    if (u.id && existingIds.has(u.id)) {
-      const { error: uErr } = await supabase
-        .from('product_units')
-        .update(unitRow(u))
-        .eq('id', u.id)
-      if (uErr) return { error: 'Kiszerelés frissítési hiba: ' + uErr.message }
-    } else {
-      const { error: uErr } = await supabase
-        .from('product_units')
-        .insert({ ...unitRow(u), product_id: id })
-      if (uErr) return { error: 'Kiszerelés mentési hiba: ' + uErr.message }
-    }
+  // Egyetlen upsert: a meglévő (id-vel bíró) sorok frissülnek, az újak
+  // beszúródnak (id nélkül → DB generálja). N külön írás helyett 1 kör.
+  const unitRows = units.map((u) => ({
+    ...unitRow(u),
+    product_id: id,
+    ...(u.id && existingIds.has(u.id) ? { id: u.id } : {}),
+  }))
+  if (unitRows.length > 0) {
+    const { error: uErr } = await supabase
+      .from('product_units')
+      .upsert(unitRows)
+    if (uErr) return { error: 'Kiszerelés mentési hiba: ' + uErr.message }
   }
 
   revalidatePath('/termekek')
@@ -261,12 +260,15 @@ export type DeleteProductResult = { ok: true } | { ok: false; error: string }
 export async function deleteProduct(id: string): Promise<DeleteProductResult> {
   const supabase = await createClient()
 
-  const { count } = await supabase
+  // Létezés-ellenőrzés: elég egyetlen sor (index-backed), nem kell teljes count.
+  const { data: hasStock } = await supabase
     .from('stock_items')
-    .select('id', { count: 'exact', head: true })
+    .select('id')
     .eq('product_id', id)
+    .limit(1)
+    .maybeSingle()
 
-  if ((count ?? 0) > 0) {
+  if (hasStock) {
     return {
       ok: false,
       error:
