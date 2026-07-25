@@ -11,7 +11,7 @@ export const STOCK_STATUSZ_LABEL: Record<StockStatusz, string> = {
   puffer: 'Puffer',
   betarolva: 'Betárolva',
   kigyujtve: 'Kigyűjtve',
-  kiadva: 'Kiadva',
+  kiadva: 'Kiszállítva',
   selejtezve: 'Selejtezve',
 }
 
@@ -26,7 +26,7 @@ export const SELEJT_OK_OPTIONS = (
   Object.keys(SELEJT_OK_LABEL) as SelejtOk[]
 ).map((value) => ({ value, label: SELEJT_OK_LABEL[value] }))
 
-/** Kiszerelés-katalógus egy eleme a bevételezés/kiadás beviteléhez. */
+/** Kiszerelés-katalógus egy eleme a bevételezés/kiszállítás beviteléhez. */
 export type UnitCatalogItem = {
   unit_id: string
   product_id: string

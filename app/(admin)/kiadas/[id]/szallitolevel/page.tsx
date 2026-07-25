@@ -87,7 +87,7 @@ export default async function SzallitolevelPage({
       {/* Vezérlők - nyomtatáskor elrejtve */}
       <div className="mb-6 flex items-center justify-between print:hidden">
         <Link href="/kiadas" className="text-sm text-slate-500 hover:underline">
-          ← Vissza a kiadáshoz
+          ← Vissza a kiszállításhoz
         </Link>
         <PrintButton />
       </div>
@@ -189,7 +189,7 @@ export default async function SzallitolevelPage({
         {/* Aláírások */}
         <div className="mt-10 flex justify-between gap-8 text-sm text-slate-500">
           <div className="flex-1 border-t border-slate-400 pt-1 text-center">
-            Kiadó
+            Kiszállító
           </div>
           <div className="flex-1 border-t border-slate-400 pt-1 text-center">
             Átvevő

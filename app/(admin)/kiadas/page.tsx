@@ -41,9 +41,9 @@ export default async function KiadasPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Kiadás</h1>
+      <h1 className="text-2xl font-semibold text-slate-900">Kiszállítás</h1>
       <p className="mt-1 text-sm text-slate-500">
-        Kigyűjtött tételek összesítése egy kiadási bizonylatba, szállítólevéllel.
+        Kigyűjtött tételek összesítése egy kiszállítási bizonylatba, szállítólevéllel.
       </p>
 
       <div className="mt-6">

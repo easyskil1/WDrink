@@ -132,7 +132,7 @@ export function KiadasForm({
           disabled={pending}
           className="rounded-md bg-slate-900 px-5 py-2.5 font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
         >
-          {pending ? 'Kiadás…' : 'Kiadás + szállítólevél'}
+          {pending ? 'Kiszállítás…' : 'Kiszállítás + szállítólevél'}
         </button>
       </div>
     </div>

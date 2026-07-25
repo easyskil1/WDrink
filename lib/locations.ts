@@ -16,10 +16,10 @@ export type Location = {
 
 /** Enum slug → magyar címke a UI-hoz. */
 export const LOCATION_TIPUS_LABEL: Record<LocationTipus, string> = {
-  pick: 'Pick',
+  pick: 'Kiszállítási terület',
   raktar: 'Raktár',
-  puffer: 'Puffer',
-  karanten: 'Karantén',
+  puffer: 'Bevételezési terület',
+  karanten: 'Zárolt',
 }
 
 export const LOCATION_TIPUS_OPTIONS: { value: LocationTipus; label: string }[] =

@@ -33,7 +33,7 @@ export const NAV: NavSection[] = [
       { href: '/bevetelezes', label: 'Bevételezés' },
       { href: '/betarolas', label: 'Betárolás' },
       { href: '/kigyujtes', label: 'Kigyűjtés' },
-      { href: '/kiadas', label: 'Kiadás' },
+      { href: '/kiadas', label: 'Kiszállítás' },
       { href: '/atrarolas', label: 'Átrárolás' },
       { href: '/selejtezes', label: 'Selejtezés' },
     ],

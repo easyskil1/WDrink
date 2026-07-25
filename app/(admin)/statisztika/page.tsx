@@ -46,15 +46,17 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub?: string
   )
 }
 
-/** Vízszintes sávdiagram (top termékek, selejt). */
+/** Vízszintes sávdiagram (top termékek, selejt, rangsorok). */
 function HBars({
   rows,
   color,
   unit = 'db',
+  format,
 }: {
   rows: { label: string; value: number }[]
   color: string
   unit?: string
+  format?: (v: number) => string
 }) {
   const max = Math.max(1, ...rows.map((r) => r.value))
   if (rows.length === 0)
@@ -66,7 +68,7 @@ function HBars({
           <div className="flex justify-between">
             <span className="truncate pr-2 text-slate-700">{r.label}</span>
             <span className="shrink-0 font-medium text-slate-900">
-              {r.value} {unit}
+              {format ? format(r.value) : `${r.value} ${unit}`}
             </span>
           </div>
           <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
@@ -81,19 +83,70 @@ function HBars({
   )
 }
 
-/** 30 napos bevét/kiadás oszlopdiagram. */
+/** ISO hétszám egy 'YYYY-MM-DD' dátumhoz. */
+function isoWeek(napStr: string): number {
+  const dt = new Date(napStr + 'T00:00:00Z')
+  const nap = (dt.getUTCDay() + 6) % 7 // hétfő = 0
+  dt.setUTCDate(dt.getUTCDate() - nap + 3) // az adott hét csütörtökje
+  const elsoCsut = new Date(Date.UTC(dt.getUTCFullYear(), 0, 4))
+  const elsoNap = (elsoCsut.getUTCDay() + 6) % 7
+  elsoCsut.setUTCDate(elsoCsut.getUTCDate() - elsoNap + 3)
+  return 1 + Math.round((dt.getTime() - elsoCsut.getTime()) / (7 * 24 * 3600 * 1000))
+}
+
+/** 30 napos bevét/kiszállítás oszlopdiagram, nap / hét / hónap tengellyel. */
 function TimeSeries({ data }: { data: DashboardData['idosor'] }) {
   const max = Math.max(1, ...data.map((d) => Math.max(d.bevet_db, d.kiad_db)))
+
+  // Csoport-középpontok: az adott hét/hónap számát a saját sávja közepére
+  // igazítjuk (nem a bal szélső oszlopba), az elválasztó vonal a határra kerül.
+  const kozeppont = (kulcs: (nap: string) => string) => {
+    const kozepek = new Map<number, string>()
+    let start = 0
+    for (let i = 1; i <= data.length; i++) {
+      if (i === data.length || kulcs(data[i].nap) !== kulcs(data[start].nap)) {
+        kozepek.set(Math.floor((start + i - 1) / 2), kulcs(data[start].nap))
+        start = i
+      }
+    }
+    return kozepek
+  }
+  const hetKozep = kozeppont((nap) => String(isoWeek(nap)))
+  const honapKozep = kozeppont((nap) => nap.slice(5, 7))
+
+  const oszlopok = data.map((d, i) => {
+    const elozo = data[i - 1]
+    const hetValt = !!elozo && isoWeek(elozo.nap) !== isoWeek(d.nap)
+    const honapValt = !!elozo && elozo.nap.slice(5, 7) !== d.nap.slice(5, 7)
+    return {
+      nap: d.nap,
+      napSzam: d.nap.slice(8, 10),
+      hetSzam: hetKozep.get(i) ?? '',
+      honapSzam: honapKozep.get(i) ?? '',
+      // nap és hét sorban csak a héthatár vékony vonala látszódjon
+      sepHet: hetValt ? 'border-l border-slate-200' : '',
+      // a hó sorban csak a hónaphatár vonala látszódjon
+      sepHonap: honapValt ? 'border-l border-slate-200' : '',
+      bevet_db: d.bevet_db,
+      kiad_db: d.kiad_db,
+    }
+  })
+
+  const gutter = 'w-7 shrink-0 pr-1 text-right text-[9px]'
+
   return (
     <div className="overflow-x-auto">
-      <div className="flex min-w-[600px] items-end gap-1" style={{ height: 140 }}>
-        {data.map((d) => (
-          <div
-            key={d.nap}
-            className="flex flex-1 flex-col items-center justify-end gap-0.5"
-            title={`${d.nap} · bevét ${d.bevet_db} · kiadás ${d.kiad_db}`}
-          >
-            <div className="flex w-full items-end justify-center gap-0.5" style={{ height: 120 }}>
+      <div className="min-w-[640px]">
+        {/* oszlopok */}
+        <div className="flex items-end gap-1" style={{ height: 120 }}>
+          <div className="w-7 shrink-0" />
+          {oszlopok.map((d) => (
+            <div
+              key={d.nap}
+              className="flex flex-1 items-end justify-center gap-0.5"
+              style={{ height: 120 }}
+              title={`${d.nap} · bevét ${d.bevet_db} · kiszállítás ${d.kiad_db}`}
+            >
               <div
                 className="w-1/2 rounded-t bg-emerald-400"
                 style={{ height: `${(d.bevet_db / max) * 100}%` }}
@@ -103,12 +156,40 @@ function TimeSeries({ data }: { data: DashboardData['idosor'] }) {
                 style={{ height: `${(d.kiad_db / max) * 100}%` }}
               />
             </div>
-            <span className="text-[9px] text-slate-400">
-              {d.nap.slice(8, 10)}
-            </span>
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {/* nap sor */}
+        <div className="mt-1 flex gap-1">
+          <div className={`${gutter} text-slate-400`}>nap</div>
+          {oszlopok.map((d) => (
+            <div key={d.nap} className={`flex-1 text-center text-[9px] text-slate-500 ${d.sepHet}`}>
+              {d.napSzam}
+            </div>
+          ))}
+        </div>
+
+        {/* hét sor */}
+        <div className="flex gap-1 border-t border-slate-100 pt-0.5">
+          <div className={`${gutter} text-slate-400`}>hét</div>
+          {oszlopok.map((d) => (
+            <div key={d.nap} className={`flex-1 text-center text-[9px] font-medium text-slate-600 ${d.sepHet}`}>
+              {d.hetSzam}
+            </div>
+          ))}
+        </div>
+
+        {/* hónap sor */}
+        <div className="flex gap-1 border-t border-slate-100 pt-0.5">
+          <div className={`${gutter} text-slate-400`}>hó</div>
+          {oszlopok.map((d) => (
+            <div key={d.nap} className={`flex-1 text-center text-[9px] font-medium text-slate-700 ${d.sepHonap}`}>
+              {d.honapSzam}
+            </div>
+          ))}
+        </div>
       </div>
+
       <div className="mt-2 flex gap-4 text-xs text-slate-500">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
@@ -116,17 +197,73 @@ function TimeSeries({ data }: { data: DashboardData['idosor'] }) {
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-slate-800" />
-          Kiadás
+          Kiszállítás
         </span>
       </div>
     </div>
   )
 }
 
+/** Mozgás-sorokat név szerint összegez (mennyiseg * egységár), rangsorolva. */
+function rangsor(
+  rows: {
+    mennyiseg: number
+    nev: string | null | undefined
+    ar: number | null | undefined
+    egyseg: number | null | undefined
+  }[],
+  limit = 10
+): { label: string; value: number }[] {
+  const map = new Map<string, number>()
+  for (const r of rows) {
+    if (!r.nev || !r.egyseg) continue
+    const ertek = r.mennyiseg * (r.ar ?? 0) / r.egyseg
+    map.set(r.nev, (map.get(r.nev) ?? 0) + ertek)
+  }
+  return [...map.entries()]
+    .map(([label, value]) => ({ label, value: Math.round(value) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit)
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('dashboard_data')
   const d = (data ?? null) as DashboardData | null
+
+  // Beszállítói rangsor bevételezési (beszerzési) érték szerint.
+  const { data: bevRows } = await supabase
+    .from('movement_log')
+    .select(
+      'mennyiseg, delivery_notes!inner(suppliers!inner(nev)), stock_items!inner(product_units!inner(beszerzesi_ar, mennyiseg_alapegysegben))'
+    )
+    .eq('tipus', 'bevetelezes')
+  const beszallitoRangsor = rangsor(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((bevRows ?? []) as any[]).map((r) => ({
+      mennyiseg: r.mennyiseg,
+      nev: r.delivery_notes?.suppliers?.nev,
+      ar: r.stock_items?.product_units?.beszerzesi_ar,
+      egyseg: r.stock_items?.product_units?.mennyiseg_alapegysegben,
+    }))
+  )
+
+  // Vásárlói rangsor kiszállítási (nettó eladási) érték szerint.
+  const { data: kiaRows } = await supabase
+    .from('movement_log')
+    .select(
+      'mennyiseg, delivery_notes!inner(vevo_nev), stock_items!inner(product_units!inner(netto_ar, mennyiseg_alapegysegben))'
+    )
+    .eq('tipus', 'kiadas')
+  const vevoRangsor = rangsor(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((kiaRows ?? []) as any[]).map((r) => ({
+      mennyiseg: r.mennyiseg,
+      nev: r.delivery_notes?.vevo_nev,
+      ar: r.stock_items?.product_units?.netto_ar,
+      egyseg: r.stock_items?.product_units?.mennyiseg_alapegysegben,
+    }))
+  )
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -150,12 +287,12 @@ export default async function DashboardPage() {
             <Kpi
               label="Kigyűjtve"
               value={`${d.kigyujtve_db} db`}
-              sub={`${d.kigyujtve_tetel} tétel kiadásra vár`}
+              sub={`${d.kigyujtve_tetel} tétel kiszállításra vár`}
             />
           </div>
 
           {/* Idősor */}
-          <Card title="Bevételezés vs. kiadás - utolsó 30 nap (db)">
+          <Card title="Bevételezés vs. kiszállítás - utolsó 30 nap (db)">
             <TimeSeries data={d.idosor} />
           </Card>
 
@@ -168,6 +305,14 @@ export default async function DashboardPage() {
                 }))}
                 color="#0f172a"
               />
+            </Card>
+
+            <Card title="Beszállítók rangsora - bevételezés (beszerzési érték)">
+              <HBars rows={beszallitoRangsor} color="#0f766e" format={ft} />
+            </Card>
+
+            <Card title="Vásárlók rangsora - kiszállítás (nettó eladási érték)">
+              <HBars rows={vevoRangsor} color="#1d4ed8" format={ft} />
             </Card>
 
             <Card title="Selejt / veszteség - ok szerint">
