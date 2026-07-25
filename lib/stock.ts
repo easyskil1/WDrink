@@ -7,6 +7,37 @@ export type StockStatusz =
 
 export type SelejtOk = 'serult' | 'lejart' | 'hiany' | 'egyeb'
 
+export type MovementTipus =
+  | 'bevetelezes'
+  | 'betarolas'
+  | 'kigyujtes'
+  | 'kiadas'
+  | 'atrarolas'
+  | 'selejtezes'
+
+export const MOVEMENT_TIPUS_LABEL: Record<MovementTipus, string> = {
+  bevetelezes: 'Bevételezés',
+  betarolas: 'Betárolás',
+  kigyujtes: 'Kigyűjtés',
+  kiadas: 'Kiszállítás',
+  atrarolas: 'Átrárolás',
+  selejtezes: 'Selejtezés',
+}
+
+/** Badge-szín típusonként a tranzakciós nézethez (Tailwind osztályok). */
+export const MOVEMENT_TIPUS_COLOR: Record<MovementTipus, string> = {
+  bevetelezes: 'bg-emerald-100 text-emerald-700',
+  betarolas: 'bg-sky-100 text-sky-700',
+  kigyujtes: 'bg-violet-100 text-violet-700',
+  kiadas: 'bg-blue-100 text-blue-700',
+  atrarolas: 'bg-amber-100 text-amber-700',
+  selejtezes: 'bg-red-100 text-red-700',
+}
+
+export const MOVEMENT_TIPUS_OPTIONS = (
+  Object.keys(MOVEMENT_TIPUS_LABEL) as MovementTipus[]
+).map((value) => ({ value, label: MOVEMENT_TIPUS_LABEL[value] }))
+
 export const STOCK_STATUSZ_LABEL: Record<StockStatusz, string> = {
   puffer: 'Puffer',
   betarolva: 'Betárolva',

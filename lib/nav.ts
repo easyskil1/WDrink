@@ -17,6 +17,7 @@ export const NAV: NavSection[] = [
     items: [
       { href: '/', label: 'Kezdőlap' },
       { href: '/statisztika', label: 'Statisztika' },
+      { href: '/tranzakciok', label: 'Tranzakciók' },
     ],
   },
   {
