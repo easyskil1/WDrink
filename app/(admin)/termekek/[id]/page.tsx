@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { Product, ProductUnit } from '@/lib/products'
-import type { Supplier } from '@/lib/suppliers'
+import { getSuppliers } from '@/lib/cached-data'
 import { ProductForm } from '../ProductForm'
 import { updateProduct } from '../actions'
 
@@ -14,7 +14,7 @@ export default async function EditProductPage({
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: product }, { data: unitData }, { data: supplierData }] =
+  const [{ data: product }, { data: unitData }, suppliers] =
     await Promise.all([
       supabase.from('products').select('*').eq('id', id).maybeSingle<Product>(),
       supabase
@@ -22,13 +22,12 @@ export default async function EditProductPage({
         .select('*')
         .eq('product_id', id)
         .order('created_at', { ascending: true }),
-      supabase.from('suppliers').select('*').order('nev'),
+      getSuppliers(),
     ])
 
   if (!product) notFound()
 
   const units = (unitData ?? []) as ProductUnit[]
-  const suppliers = (supplierData ?? []) as Supplier[]
 
   return (
     <div className="mx-auto max-w-4xl">

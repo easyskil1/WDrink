@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Supplier } from '@/lib/suppliers'
+import { getSuppliers } from '@/lib/cached-data'
 import type { UnitCatalogItem } from '@/lib/stock'
 import { BevetelezesForm } from './BevetelezesForm'
 
@@ -14,8 +14,8 @@ type UnitRow = {
 export default async function BevetelezesPage() {
   const supabase = await createClient()
 
-  const [{ data: supplierData }, { data: unitData }] = await Promise.all([
-    supabase.from('suppliers').select('*').order('nev'),
+  const [suppliers, { data: unitData }] = await Promise.all([
+    getSuppliers(),
     supabase
       .from('product_units')
       .select(
@@ -23,8 +23,6 @@ export default async function BevetelezesPage() {
       )
       .eq('products.aktiv', true),
   ])
-
-  const suppliers = (supplierData ?? []) as Supplier[]
   const catalog: UnitCatalogItem[] = ((unitData ?? []) as unknown as UnitRow[])
     .filter((u) => u.products)
     .map((u) => ({

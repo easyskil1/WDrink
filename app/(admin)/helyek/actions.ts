@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { computeTeljesKod, type LocationTipus } from '@/lib/locations'
@@ -59,6 +59,7 @@ export async function createLocation(
   }
 
   revalidatePath('/helyek')
+  updateTag('locations')
   redirect('/helyek')
 }
 
@@ -95,6 +96,7 @@ export async function updateLocation(
   }
 
   revalidatePath('/helyek')
+  updateTag('locations')
   redirect('/helyek')
 }
 
@@ -102,4 +104,5 @@ export async function toggleLocationActive(id: string, aktiv: boolean) {
   const supabase = await createClient()
   await supabase.from('locations').update({ aktiv }).eq('id', id)
   revalidatePath('/helyek')
+  updateTag('locations')
 }

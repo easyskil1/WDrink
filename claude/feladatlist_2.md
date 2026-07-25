@@ -93,12 +93,22 @@
 > Fontos: `export const revalidate` itt **nem** működik, mert a `cookies()` dinamikussá
 > teszi az oldalt. Helyette `unstable_cache` (cookie-mentes klienssel) + `revalidateTag`.
 
-- [ ] **E1** 🟡 `suppliers` cache-elése – olvasás: `beszallitok/page.tsx:8`, dropdown:
-  `termekek/page.tsx:39`, `termekek/[id]:25`, `bevetelezes/page.tsx:18`, `munka/bevetelezes/page.tsx:18`.
-  Helper `lib/suppliers.ts`-be, `revalidateTag('suppliers')` a `beszallitok/actions.ts`-be.
-- [ ] **E2** 🟡 `locations` cache – `helyek/page.tsx:20`, `betarolas:37`, `atrarolas:41`, `cimkek:26` + wizardok. Tag: `locations`.
-- [ ] **E3** 🟡 `products`/`product_units` katalógus cache – `termekek/page.tsx:45`, bevételezés unit-lista. Tag: `products`.
-- [ ] **E4** 🟡 `company_settings` cache – `beallitasok/page.tsx:8` és `szallitolevel/page.tsx:63` (nyomtatásonként újraolvassa). Tag: `company_settings`.
+> **Megvalósítás:** `lib/cached-data.ts` – `unstable_cache` + service-role (cookie-mentes) kliens,
+> 1 órás backstop `revalidate`. Invalidálás: **`updateTag(tag)`** a Server Action-ökben
+> (Next 16: azonnali, read-your-own-writes; a `revalidateTag` most 2 argumentumot kér és
+> stale-while-revalidate, ezért az `updateTag` a jó CRUD-oldalakra).
+
+- [x] **E1** 🟡 `getSuppliers()` cache (tag: `suppliers`). Bekötve: `beszallitok/page.tsx`,
+  `termekek/page.tsx`, `termekek/[id]`, `termekek/uj`, `bevetelezes/page.tsx`, `munka/bevetelezes`.
+  `updateTag('suppliers')` a `beszallitok/actions.ts` create/update/delete-ben. ✅
+- [x] **E2** 🟡 `getActiveLocations()` cache (tag: `locations`). Bekötve a dropdown-fogyasztókba:
+  `betarolas`, `atrarolas`, `munka/betarolas`, `munka/atrarolas`. `updateTag('locations')` a
+  `helyek/actions.ts`-ben. A `helyek` és `cimkek` **management** oldalak élők maradnak (szűrők). ✅
+- [ ] **E3** 🟡 `products`/`product_units` katalógus cache – **HALASZTVA**: túl dinamikus (ár/új termék
+  gyakran változik, a lista keresés-szűrős), a cache haszna kisebb, a staleness-kockázat nagyobb.
+- [x] **E4** 🟡 `getCompanySettings()` cache (tag: `company_settings`). Bekötve: `beallitasok/page.tsx`
+  és `szallitolevel/page.tsx` (nyomtatásonként újraolvasta). `updateTag('company_settings')` a
+  `beallitasok/actions.ts`-ben. ✅ (build + tsc zöld)
 
 ---
 

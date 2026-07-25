@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { KISZERELES_LABEL, type KiszerelesTipus } from '@/lib/products'
-import type { Supplier } from '@/lib/suppliers'
+import { getSuppliers } from '@/lib/cached-data'
 import { toggleProductActive } from './actions'
 import OpenFoodFactsCard from './OpenFoodFactsCard'
 import { DeleteProductButton } from './DeleteProductButton'
@@ -36,11 +36,7 @@ export default async function ProductsPage({
   const sp = await searchParams
   const supabase = await createClient()
 
-  const { data: supplierData } = await supabase
-    .from('suppliers')
-    .select('id, nev')
-    .order('nev')
-  const suppliers = (supplierData ?? []) as Pick<Supplier, 'id' | 'nev'>[]
+  const suppliers = await getSuppliers()
 
   let query = supabase
     .from('products')

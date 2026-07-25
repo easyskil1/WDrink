@@ -1,15 +1,10 @@
 import { requireAdmin } from '@/lib/auth'
-import { createClient } from '@/lib/supabase/server'
-import { CompanyForm, type CompanySettings } from './CompanyForm'
+import { getCompanySettings } from '@/lib/cached-data'
+import { CompanyForm } from './CompanyForm'
 
 export default async function BeallitasokPage() {
   await requireAdmin()
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('company_settings')
-    .select('cegnev, adoszam, cim, jovedeki_engedelyszam, felir_azonosito')
-    .eq('id', true)
-    .maybeSingle<CompanySettings>()
+  const data = await getCompanySettings()
 
   return (
     <div className="mx-auto max-w-3xl">

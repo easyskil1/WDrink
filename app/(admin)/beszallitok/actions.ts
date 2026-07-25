@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
@@ -27,6 +27,7 @@ export async function createSupplier(
   if (error) return { error: 'Mentési hiba: ' + error.message }
 
   revalidatePath('/beszallitok')
+  updateTag('suppliers')
   redirect('/beszallitok')
 }
 
@@ -43,6 +44,7 @@ export async function updateSupplier(
   if (error) return { error: 'Mentési hiba: ' + error.message }
 
   revalidatePath('/beszallitok')
+  updateTag('suppliers')
   redirect('/beszallitok')
 }
 
@@ -50,4 +52,5 @@ export async function deleteSupplier(id: string) {
   const supabase = await createClient()
   await supabase.from('suppliers').delete().eq('id', id)
   revalidatePath('/beszallitok')
+  updateTag('suppliers')
 }

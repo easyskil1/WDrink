@@ -1,13 +1,10 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import type { Supplier } from '@/lib/suppliers'
+import { getSuppliers } from '@/lib/cached-data'
 import { ProductForm } from '../ProductForm'
 import { createProduct } from '../actions'
 
 export default async function NewProductPage() {
-  const supabase = await createClient()
-  const { data } = await supabase.from('suppliers').select('*').order('nev')
-  const suppliers = (data ?? []) as Supplier[]
+  const suppliers = await getSuppliers()
 
   return (
     <div className="mx-auto max-w-4xl">

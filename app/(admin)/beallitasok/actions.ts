@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
 export type CompanyFormState = { error?: string; ok?: boolean }
@@ -25,5 +25,6 @@ export async function updateCompanySettings(
   if (error) return { error: 'Mentési hiba: ' + error.message }
 
   revalidatePath('/beallitasok')
+  updateTag('company_settings')
   return { ok: true }
 }

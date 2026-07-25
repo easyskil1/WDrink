@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getActiveLocations } from '@/lib/cached-data'
 import { AtrarolasList } from './AtrarolasList'
 
 type StockRow = {
@@ -28,7 +29,7 @@ export type LocationOption = { id: string; teljes_kod: string }
 export default async function AtrarolasPage() {
   const supabase = await createClient()
 
-  const [{ data: stockData }, { data: locData }] = await Promise.all([
+  const [{ data: stockData }, locations] = await Promise.all([
     supabase
       .from('stock_items')
       .select(
@@ -37,11 +38,7 @@ export default async function AtrarolasPage() {
       .eq('statusz', 'betarolva')
       .gt('mennyiseg_alapegysegben', 0)
       .order('created_at', { ascending: true }),
-    supabase
-      .from('locations')
-      .select('id, teljes_kod')
-      .eq('aktiv', true)
-      .order('teljes_kod'),
+    getActiveLocations(),
   ])
 
   const items: BetaroltItem[] = ((stockData ?? []) as unknown as StockRow[]).map(
@@ -56,7 +53,6 @@ export default async function AtrarolasPage() {
       teljes_kod: s.locations?.teljes_kod ?? null,
     })
   )
-  const locations = (locData ?? []) as LocationOption[]
 
   return (
     <div className="mx-auto max-w-4xl">

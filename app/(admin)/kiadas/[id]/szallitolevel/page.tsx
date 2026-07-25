@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCompanySettings } from '@/lib/cached-data'
 import {
   JOVEDEKI_KATEGORIA_LABEL,
   KISZERELES_LABEL,
@@ -48,7 +49,7 @@ export default async function SzallitolevelPage({
   const { id } = await params
   const supabase = await createClient()
 
-  const [{ data: note }, { data: company }, { data: moves }] = await Promise.all([
+  const [{ data: note }, company, { data: moves }] = await Promise.all([
     supabase
       .from('delivery_notes')
       .select('sorszam, vevo_nev, datum, irany')
@@ -59,17 +60,7 @@ export default async function SzallitolevelPage({
         datum: string
         irany: string
       }>(),
-    supabase
-      .from('company_settings')
-      .select('*')
-      .eq('id', true)
-      .maybeSingle<{
-        cegnev: string | null
-        adoszam: string | null
-        cim: string | null
-        jovedeki_engedelyszam: string | null
-        felir_azonosito: string | null
-      }>(),
+    getCompanySettings(),
     supabase
       .from('movement_log')
       .select(
