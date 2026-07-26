@@ -12,13 +12,19 @@ function isActive(pathname: string, href: string) {
 }
 
 export function MobileNav({ role }: { role: Role | null }) {
-  const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
-  // Navigáció után zárjuk a drawer-t.
-  useEffect(() => {
-    setOpen(false)
-  }, [pathname])
+  // A drawer nyitott állapotát nem külön flag tárolja, hanem AZ a pathname,
+  // amelyiken kinyitottuk. Nyitott = az akkori útvonal még érvényben van.
+  // Így a navigáció automatikusan bezárja (útvonal változik → `open` false),
+  // effectben hívott setState nélkül – és a böngésző vissza/előre gombja is
+  // bezárja, amit a korábbi useEffect+setOpen(false) megoldás is tudott.
+  // (Ha a már aktív menüpontra kattintanak, az útvonal nem változik, tehát a
+  // drawer nyitva marad – pontosan úgy, mint korábban.)
+  const [openedOn, setOpenedOn] = useState<string | null>(null)
+  const open = openedOn === pathname
+  const openNav = () => setOpenedOn(pathname)
+  const closeNav = () => setOpenedOn(null)
 
   // Nyitott drawer alatt ne görögjön a háttér.
   useEffect(() => {
@@ -33,7 +39,7 @@ export function MobileNav({ role }: { role: Role | null }) {
       <button
         type="button"
         aria-label="Menü"
-        onClick={() => setOpen(true)}
+        onClick={openNav}
         className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 text-slate-700"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -50,7 +56,7 @@ export function MobileNav({ role }: { role: Role | null }) {
             type="button"
             aria-label="Bezárás"
             className="absolute inset-0 bg-black/40"
-            onClick={() => setOpen(false)}
+            onClick={closeNav}
           />
           {/* Drawer */}
           <div className="relative flex h-full w-72 max-w-[80vw] flex-col bg-white shadow-xl">
@@ -67,7 +73,7 @@ export function MobileNav({ role }: { role: Role | null }) {
               <button
                 type="button"
                 aria-label="Bezárás"
-                onClick={() => setOpen(false)}
+                onClick={closeNav}
                 className="flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
