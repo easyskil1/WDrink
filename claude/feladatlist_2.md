@@ -28,17 +28,21 @@
 >
 > **STÁTUSZ: ✅ KÉSZ + ALKALMAZVA** (`supabase/migrations/20260725091758_perf_indexek.sql`,
 > A1–A4 lefuttatva a Supabase-en dashboard SQL editorból, 2026-07-25). A5 kihagyva (kis tábla).
+> **Utóellenőrzés 2026-07-26:** mind az 5 index létezik az éles DB-ben
+> (`pg_indexes` lekérdezés: `movement_log_delivery_note_idx`, `stock_items_statusz_lejarat_idx`,
+> `stock_items_statusz_created_idx`, `suppliers_nev_idx`, `products_aktiv_idx`) – az A2–A4
+> pipái csak lemaradtak, most bejelölve.
 
 - [x] **A1** 🔴 Index a szállítólevél-nyomtatáshoz
   `create index movement_log_delivery_note_idx on public.movement_log (delivery_note_id);`
   Ok: `kiadas/[id]/szallitolevel/page.tsx:78` `delivery_note_id` szerint szűr, jelenleg index nélkül → teljes tábla-scan nyomtatásonként. (`init_schema.sql:240,247-249`)
-- [ ] **A2** 🟡 Összetett indexek a készlet-munkalistákhoz (FEFO + rendezés):
+- [x] **A2** 🟡 Összetett indexek a készlet-munkalistákhoz (FEFO + rendezés):
   `create index stock_items_statusz_lejarat_idx on public.stock_items (statusz, lejarat_datum nulls last);`
   `create index stock_items_statusz_created_idx on public.stock_items (statusz, created_at);`
   Ok: `kigyujtes/page.tsx:32-34`, `osszekeszites:33-35`, `betarolas:33-35`, `kiadas:29-31`, `atrarolas:37-39`, `selejtezes:43-45` mind `statusz`-ra szűr + `created_at`/`lejarat_datum`-ra rendez; jelenleg csak külön indexek vannak. (`init_schema.sql:219-223`)
-- [ ] **A3** 🟢 `create index suppliers_nev_idx on public.suppliers (nev);`
+- [x] **A3** 🟢 `create index suppliers_nev_idx on public.suppliers (nev);`
   Ok: több `.order('nev')` (`termekek/page.tsx:42`, `bevetelezes/page.tsx:18`, `termekek/uj:9`, `termekek/[id]:25`, `beszallitok:11`).
-- [ ] **A4** 🟢 Részleges index az aktív termékekre:
+- [x] **A4** 🟢 Részleges index az aktív termékekre:
   `create index products_aktiv_idx on public.products (aktiv) where aktiv;`
   Ok: `bevetelezes/page.tsx:24`, `termekek/page.tsx:53-54`.
 - [ ] **A5** 🟢 (opcionális, csak ha a `locations` megnő) index `locations (tipus)` / `(aktiv)` a `helyek` szűrőkhöz (`helyek/page.tsx:25-28`).
@@ -63,9 +67,19 @@
 
 - [x] **C1** 🔴 `tranzakciok/page.tsx` – `count:'exact'` → `count:'estimated'` (nagy táblán planner-becslés,
   kis táblán pontos; nincs teljes `COUNT(*)` minden betöltéskor). ✅ kész, tsc zöld.
-- [ ] **C2** 🟡 `tranzakciok/page.tsx:112` – a `profiles` külön lekérdezés helyett join a fő
-  selectbe (`profiles(nev)`), 1 körrel kevesebb. (Megj.: FK a `auth.users`-re megy, ellenőrizni kell az embed-elhetőséget; ha nem megy, marad a külön lekérdezés.)
-- [ ] **C3** 🟡 `loading.tsx` a `tranzakciok` szegmensbe (lásd F fázis).
+- [x] **C2** 🟡 `tranzakciok/page.tsx` – a `profiles` külön lekérdezés megszüntetve, a felhasználónév
+  a fő selectből jön embeddel. ✅ (2026-07-26)
+  **Az embed-elhetőség nem állt fenn magától:** a `movement_log.user_id` FK-ja az `auth.users`-re
+  megy, a `profiles.id` szintén – a kettő között nem volt deklarált kapcsolat, ezért a PostgREST
+  nem tudott embeddelni. Megoldás: **második FK** ugyanarra az oszlopra a `public.profiles` felé
+  (`supabase/migrations/20260726100000_movement_log_profiles_fk.sql`, ALKALMAZVA a Management
+  API-n keresztül). Select-hint: `profiles!movement_log_user_id_profiles_fkey(nev)`.
+  Biztonsági ellenőrzés a migráció előtt: 164 sor, mind kitöltött `user_id`, **0 árva sor**;
+  a `handle_new_user` trigger garantálja a profil létét; törlési szabály NO ACTION (mint a
+  meglévő FK-nál) → viselkedés nem változik. Embed élesben tesztelve (PostgREST: `profiles: {nev}`).
+  Visszavonás: `alter table public.movement_log drop constraint movement_log_user_id_profiles_fkey;`
+- [x] **C3** 🟡 `loading.tsx` a `tranzakciok` szegmensbe – ✅ már megvolt az F2-vel együtt
+  (`app/(admin)/tranzakciok/loading.tsx`), a pipa lemaradt.
 
 ---
 
@@ -151,8 +165,17 @@
   (`components/ListLimitNotice.tsx`) - nincs néma levágás. ✅ (tsc + build zöld)
   > Megj.: eredetileg Cégadat/DB-oszlop volt; a felhasználó kérésére áttéve eszköz-szintű
   > cookie-ra a Beállítások oldalra. A rövid életű `keszlet_lista_limit` DB-oszlop eldobva.
-- [ ] **H2** 🟢 `select('*')` szűkítése a renderelt oszlopokra: `helyek/page.tsx:22`,
-  `cimkek:27`, suppliers-dropdownok (`id, nev` elég): `bevetelezes/page.tsx:18`, `munka/bevetelezes:18`, `termekek/uj:9`.
+- [x] **H2** 🟢 `select('*')` szűkítése a renderelt oszlopokra. ✅ (2026-07-26)
+  - `helyek/page.tsx` → `select('id, teljes_kod, tipus, aktiv')` + `LocationRow` (`Pick<Location,…>`) típus
+  - `helyek/cimkek/page.tsx` → `select('id, teljes_kod, tipus, qr_kod')` + `LabelLocation` típus
+  - **A suppliers-dropdownok tárgytalanok:** az E1 fázis óta nem közvetlenül kérdeznek, hanem a
+    `getSuppliers()` órás `unstable_cache`-en keresztül (`lib/cached-data.ts:47`) – a round-trip
+    eleve megszűnt, ami nagyobb nyereség a szűkítésnél. A cache-ben maradt `select('*')` szűkítése
+    csak a `created_at`/`updated_at`-et dobná, viszont 4 fájl prop-típusát érintené
+    (`BevetelezesForm`, `ProductForm`, `BevetelezesWizard` mind `Supplier[]`-et vár) → **nem éri meg**.
+  - **A `[id]` szerkesztő oldalak szándékosan maradtak `select('*')`-on**
+    (`helyek/[id]`, `termekek/[id]`, `beszallitok/[id]`): egyetlen sor PK szerint, és a teljes
+    rekord kell a form `initial` propjához – itt nincs over-fetch.
 
 ---
 
@@ -161,8 +184,8 @@
 - [x] **I1** 🟢 ✅ Megerősítve: a projekt **ES256 (aszimmetrikus)** kulcsot használ (`in_use`),
   a régi HS256 csak `previously_used`. A JWKS ES256-ot publikál. → `getClaims()` lokálisan ellenőriz,
   nincs hálózati kör requestenként. (Ellenőrizve: JWKS well-known + Management API signing-keys, 2026-07-25.)
-- [ ] **I2** 🟢 Fluid Compute bekapcsolása (Vercel → Functions) – kisebb cold start (~1.3s → kevesebb). Ingyenes.
-- [ ] **I3** 🟢 Régió-újraellenőrzés deploy után az `x-vercel-id` fejléccel (`fra1::fra1` a jó minta egy hitelesített adatoldalon).
+- [~] **I2** 🟢 Fluid Compute bekapcsolása (Vercel → Functions) – **ELVETVE** (felhasználói döntés, 2026-07-26).
+- [~] **I3** 🟢 Régió-újraellenőrzés az `x-vercel-id` fejléccel – **ELVETVE** (felhasználói döntés, 2026-07-26).
 
 ---
 

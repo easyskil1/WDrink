@@ -6,6 +6,9 @@ import { PrintButton } from './PrintButton'
 
 type SearchParams = Promise<{ sor?: string; tipus?: string; aktiv?: string }>
 
+// Csak a cimken megjeleno mezok (H2): QR-forras, kod es tipus-felirat.
+type LabelLocation = Pick<Location, 'id' | 'teljes_kod' | 'tipus' | 'qr_kod'>
+
 async function qrSvg(text: string): Promise<string> {
   return QRCode.toString(text, {
     type: 'svg',
@@ -24,7 +27,7 @@ export default async function LabelsPage({
 
   let query = supabase
     .from('locations')
-    .select('*')
+    .select('id, teljes_kod, tipus, qr_kod')
     .order('teljes_kod', { ascending: true })
 
   if (sp.sor) query = query.ilike('sor', sp.sor)
@@ -33,7 +36,7 @@ export default async function LabelsPage({
   if (sp.aktiv === 'inaktiv') query = query.eq('aktiv', false)
 
   const { data } = await query
-  const locations = (data ?? []) as Location[]
+  const locations = (data ?? []) as LabelLocation[]
 
   const labels = await Promise.all(
     locations.map(async (loc) => ({

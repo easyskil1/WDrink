@@ -44,3 +44,9 @@ next-env.d.ts
 # perf mérés (lokális, ne commitold)
 perf-tmp.mjs
 pw-state.json
+
+# demo-adat / kép seed scriptek (lokálisak, service role kulcsot használnak
+# a .env.local-ból – nem részei a deployolt appnak)
+seed-demo.mjs
+seed-images.mjs
+seed-images2.mjs

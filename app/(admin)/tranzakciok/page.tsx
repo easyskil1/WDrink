@@ -28,6 +28,7 @@ type Row = {
   megjegyzes: string | null
   created_at: string
   user_id: string | null
+  profiles: { nev: string | null } | null
   forras: { teljes_kod: string } | null
   cel: { teljes_kod: string } | null
   stock_items: {
@@ -62,6 +63,7 @@ export default async function TransactionsPage({
     .from('movement_log')
     .select(
       `id, tipus, mennyiseg, selejt_ok, megjegyzes, created_at, user_id,
+       profiles!movement_log_user_id_profiles_fkey(nev),
        forras:locations!forras_location_id(teljes_kod),
        cel:locations!cel_location_id(teljes_kod),
        stock_items(lot_szam, products(nev, jovedeki), product_units(kiszereles))`,
@@ -107,16 +109,8 @@ export default async function TransactionsPage({
   const { data, error, count } = await query.range(from, to)
   const rows = (data ?? []) as unknown as Row[]
 
-  // Felhasznalonevek kigyujtese (movement_log.user_id -> profiles).
-  const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))] as string[]
-  const userMap = new Map<string, string>()
-  if (userIds.length > 0) {
-    const { data: profs } = await supabase
-      .from('profiles')
-      .select('id, nev')
-      .in('id', userIds)
-    for (const p of profs ?? []) userMap.set(p.id, p.nev ?? '-')
-  }
+  // A felhasznalonev a fo selectbol jon (profiles embed a
+  // movement_log_user_id_profiles_fkey menten) - nincs kulon lekerdezes.
 
   const total = count ?? 0
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -252,9 +246,7 @@ export default async function TransactionsPage({
                   <td className={td}>
                     {r.selejt_ok ? SELEJT_OK_LABEL[r.selejt_ok] : '-'}
                   </td>
-                  <td className={td}>
-                    {r.user_id ? userMap.get(r.user_id) ?? '-' : '-'}
-                  </td>
+                  <td className={td}>{r.profiles?.nev ?? '-'}</td>
                   <td className={`${td} max-w-xs truncate`} title={r.megjegyzes ?? ''}>
                     {r.megjegyzes ?? '-'}
                   </td>

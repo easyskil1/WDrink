@@ -9,6 +9,10 @@ import { toggleLocationActive } from './actions'
 
 type SearchParams = Promise<{ sor?: string; tipus?: string; aktiv?: string }>
 
+// Csak a listában renderelt oszlopok (H2). A szurest a szerver vegzi, ahhoz
+// nem kell a sor/polc/... es a timestampek sem jelennek meg sehol.
+type LocationRow = Pick<Location, 'id' | 'teljes_kod' | 'tipus' | 'aktiv'>
+
 export default async function LocationsPage({
   searchParams,
 }: {
@@ -19,7 +23,7 @@ export default async function LocationsPage({
 
   let query = supabase
     .from('locations')
-    .select('*')
+    .select('id, teljes_kod, tipus, aktiv')
     .order('teljes_kod', { ascending: true })
 
   if (sp.sor) query = query.ilike('sor', sp.sor)
@@ -28,7 +32,7 @@ export default async function LocationsPage({
   if (sp.aktiv === 'inaktiv') query = query.eq('aktiv', false)
 
   const { data, error } = await query
-  const locations = (data ?? []) as Location[]
+  const locations = (data ?? []) as LocationRow[]
 
   // A címkenyomtatás linkje megőrzi a szűrést.
   const labelParams = new URLSearchParams()
