@@ -155,9 +155,9 @@ export function BevetelezesForm({
             <input
               value={szlSzam}
               onChange={(e) => setSzlSzam(e.target.value)}
-              placeholder="A beszállító papírján szereplő szám"
+              placeholder="pl. 12345"
               autoComplete="off"
-              className={`${input} py-3 text-base font-semibold`}
+              className={input}
             />
             <span className="text-xs font-normal text-slate-400">
               Ha ez a szám ehhez a beszállítóhoz már létezik, a tételek a meglévő

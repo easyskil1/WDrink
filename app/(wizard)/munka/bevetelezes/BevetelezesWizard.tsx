@@ -305,10 +305,9 @@ export function BevetelezesWizard({
             <input
               value={szlSzam}
               onChange={(e) => setSzlSzam(e.target.value)}
-              placeholder="A beszállító papírján szereplő szám"
+              placeholder="pl. 12345"
               autoComplete="off"
-              // Elsődleges mező: nagyobb, hangsúlyosabb a többinél.
-              className={`${inputCls} py-4 text-lg font-semibold`}
+              className={inputCls}
             />
           </label>
 

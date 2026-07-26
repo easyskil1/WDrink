@@ -210,7 +210,7 @@ export default async function BevetelezesekPage({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-baseline gap-2">
                     {/* Elsődleges: a beszállító papírszáma. */}
-                    <span className="text-base font-semibold text-slate-900">
+                    <span className="font-medium text-slate-900">
                       {n.szallitolevel_szam ?? (
                         <span className="text-slate-400">(nincs szállítólevél szám)</span>
                       )}

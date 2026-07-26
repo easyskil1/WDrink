@@ -68,7 +68,7 @@ export function NoteHeaderForm({
             value={szl}
             onChange={(e) => setSzl(e.target.value)}
             autoComplete="off"
-            className={`${input} text-base font-semibold`}
+            className={input}
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
