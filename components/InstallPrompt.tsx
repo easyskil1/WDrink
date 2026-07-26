@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Egyszeri, elutasítható telepítési segédablak (PWA - kezdőképernyőre adás).
+ * Egyszeri, elutasítható telepítési segédablak (PWA kezdőképernyőre adás).
  *
  * Platformfüggő útmutató:
  *  - iOS Safari: Megosztás → Főképernyőhöz adás (nincs automatikus prompt).
@@ -139,8 +139,8 @@ export function InstallPrompt() {
         </div>
 
         <p className="mt-3 text-sm text-slate-500">
-          Így böngészősáv nélkül, teljes képernyőn, app-szerűen nyílik, és a
-          kamera-engedélyt is megjegyzi a szkenneléshez.
+          Így böngészősáv nélkül, teljes képernyőn, appszerűen nyílik, és a
+          kameraengedélyt is megjegyzi a szkenneléshez.
         </p>
 
         <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
