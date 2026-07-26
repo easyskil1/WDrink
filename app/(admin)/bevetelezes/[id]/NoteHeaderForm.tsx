@@ -61,8 +61,9 @@ export function NoteHeaderForm({
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+      {/* Négy mező egy sorban (nagy nézet), 2x2 közepesen, egymás alatt mobilon. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
           Szállítólevél szám
           <input
             value={szl}

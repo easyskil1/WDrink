@@ -148,9 +148,10 @@ export function BevetelezesForm({
     <div className="flex flex-col gap-6">
       {/* Fejléc adatok */}
       <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Négy mező egy sorban (nagy nézet), 2x2 közepesen, egymás alatt mobilon. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Elsődleges azonosító: a beszállító papírján szereplő szám. */}
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Szállítólevél szám
             <input
               value={szlSzam}
@@ -159,10 +160,6 @@ export function BevetelezesForm({
               autoComplete="off"
               className={input}
             />
-            <span className="text-xs font-normal text-slate-400">
-              Ha ez a szám ehhez a beszállítóhoz már létezik, a tételek a meglévő
-              szállítólevélhez fűződnek, nem nyílik új.
-            </span>
           </label>
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Beszállító
@@ -188,17 +185,23 @@ export function BevetelezesForm({
               className={input}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
-            Szállítólevél fotó (opcionális)
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            Fotó (opcionális)
             <input
               type="file"
               accept="image/*"
               capture="environment"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700"
+              className="min-w-0 text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700"
             />
           </label>
         </div>
+
+        {/* A súgó a rács ALATT egy sorban - a mezőn belül megnyújtotta a sort. */}
+        <p className="mt-3 text-xs text-slate-400">
+          Ha a szállítólevél szám ehhez a beszállítóhoz már létezik, a tételek a
+          meglévő szállítólevélhez fűződnek, nem nyílik új.
+        </p>
       </section>
 
       {/* Tételek */}
