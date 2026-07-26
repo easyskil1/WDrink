@@ -154,12 +154,13 @@ export default async function BevetelezesReszletPage({
 
   return (
     <div className="mx-auto max-w-5xl">
-      <nav className="mb-4 text-sm text-slate-500">
-        <Link href="/bevetelezes" className="hover:underline">
-          Bevételezések
-        </Link>{' '}
-        / {noteData.szallitolevel_szam ?? noteData.sorszam}
-      </nav>
+      {/* Látható visszaút - a halvány morzsasort könnyű nem észrevenni. */}
+      <Link
+        href="/bevetelezes"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+      >
+        ← Vissza a bevételezésekhez
+      </Link>
 
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold text-slate-900">

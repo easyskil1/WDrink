@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getSuppliers } from '@/lib/cached-data'
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 100
 
 type SearchParams = Promise<{
   szl?: string
@@ -48,6 +48,8 @@ export default async function BevetelezesekPage({
     .from('delivery_notes')
     .select(
       'id, sorszam, szallitolevel_szam, datum, fenykep_url, ekaer_szam, suppliers(nev)',
+      // 'estimated': nagy táblán planner-becslés, kis táblán pontos - nincs
+      // teljes COUNT(*) minden betöltéskor (mint a Tranzakciók oldalon).
       { count: 'estimated' }
     )
     .eq('irany', 'bevetelezes')
@@ -105,6 +107,9 @@ export default async function BevetelezesekPage({
 
   const input =
     'rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-slate-500'
+  const th =
+    'whitespace-nowrap border-b border-slate-300 bg-slate-50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500'
+  const td = 'whitespace-nowrap border-b border-slate-100 px-3 py-2 text-slate-700'
 
   const pageHref = (p: number) => {
     const params = new URLSearchParams()
@@ -118,7 +123,7 @@ export default async function BevetelezesekPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Bevételezések</h1>
@@ -185,77 +190,83 @@ export default async function BevetelezesekPage({
         </Link>
       </form>
 
-      {error && (
-        <p className="mt-4 text-sm text-red-600">Hiba a betöltéskor: {error.message}</p>
-      )}
+      {error && <p className="mt-4 text-sm text-red-600">Hiba: {error.message}</p>}
 
-      {/* Lista */}
-      <ul className="mt-4 flex flex-col gap-3">
-        {notes.length === 0 && (
-          <li className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-400">
-            Nincs a szűrésnek megfelelő szállítólevél.
-          </li>
-        )}
-        {notes.map((n) => {
-          const a = aggr.get(n.id)
-          return (
-            <li
-              key={n.id}
-              className="rounded-xl border border-slate-200 bg-white transition hover:border-slate-300"
-            >
-              <Link
-                href={`/bevetelezes/${n.id}`}
-                className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    {/* Elsődleges: a beszállító papírszáma. */}
-                    <span className="font-medium text-slate-900">
+      {/* Excel-szerű táblázat */}
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className={th}>Szállítólevél szám</th>
+              <th className={th}>Beszállító</th>
+              <th className={th}>Dátum</th>
+              <th className={`${th} text-right`}>Tételek</th>
+              <th className={`${th} text-right`}>Menny. (db)</th>
+              <th className={`${th} text-right`}>Selejt (db)</th>
+              <th className={`${th} text-right`}>Korrekció</th>
+              <th className={th}>Fotó</th>
+              <th className={th}>EKAER</th>
+              <th className={th}>Belső azonosító</th>
+              <th className={th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {notes.length === 0 && (
+              <tr>
+                <td colSpan={11} className="px-3 py-8 text-center text-slate-400">
+                  Nincs a szűrésnek megfelelő szállítólevél.
+                </td>
+              </tr>
+            )}
+            {notes.map((n) => {
+              const a = aggr.get(n.id)
+              return (
+                <tr key={n.id} className="odd:bg-white even:bg-slate-50/50">
+                  <td className={`${td} font-medium text-slate-900`}>
+                    <Link
+                      href={`/bevetelezes/${n.id}`}
+                      className="hover:underline"
+                    >
                       {n.szallitolevel_szam ?? (
-                        <span className="text-slate-400">(nincs szállítólevél szám)</span>
+                        <span className="font-normal text-slate-400">-</span>
                       )}
-                    </span>
-                    {n.fenykep_url && (
-                      <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
-                        fotó
-                      </span>
+                    </Link>
+                  </td>
+                  <td className={td}>{n.suppliers?.nev ?? '-'}</td>
+                  <td className={`${td} tabular-nums`}>{dt(n.datum)}</td>
+                  <td className={`${td} text-right tabular-nums`}>
+                    {a?.tetelek ?? 0}
+                  </td>
+                  <td className={`${td} text-right tabular-nums`}>{a?.db ?? 0}</td>
+                  <td className={`${td} text-right tabular-nums`}>
+                    {a?.selejt ? (
+                      <span className="text-red-600">{a.selejt}</span>
+                    ) : (
+                      '-'
                     )}
-                    {a && a.korrekcio > 0 && (
-                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
-                        {a.korrekcio} korrekció
-                      </span>
-                    )}
-                    {a && a.selejt > 0 && (
-                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                        {a.selejt} db selejt
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 truncate text-sm text-slate-500">
-                    {n.suppliers?.nev ?? '- beszállító nélkül -'} · {dt(n.datum)}
-                  </p>
-                  {/* Másodlagos, technikai azonosító. */}
-                  <p className="mt-0.5 font-mono text-xs text-slate-400">{n.sorszam}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-6 text-sm">
-                  <div className="text-right">
-                    <p className="font-semibold text-slate-900 tabular-nums">
-                      {a?.tetelek ?? 0}
-                    </p>
-                    <p className="text-xs text-slate-400">tétel</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-slate-900 tabular-nums">
-                      {a?.db ?? 0}
-                    </p>
-                    <p className="text-xs text-slate-400">db</p>
-                  </div>
-                </div>
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
+                  </td>
+                  <td className={`${td} text-right tabular-nums`}>
+                    {a?.korrekcio ? a.korrekcio : '-'}
+                  </td>
+                  <td className={td}>{n.fenykep_url ? 'van' : '-'}</td>
+                  <td className={td}>{n.ekaer_szam ?? '-'}</td>
+                  <td className={`${td} font-mono text-xs text-slate-400`}>
+                    {n.sorszam}
+                  </td>
+                  <td className={td}>
+                    <Link
+                      href={`/bevetelezes/${n.id}`}
+                      className="font-medium text-slate-600 hover:underline"
+                    >
+                      Megnyitás
+                    </Link>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* Lapozás */}
       {lastPage > 1 && (
