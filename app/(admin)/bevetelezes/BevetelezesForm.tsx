@@ -37,6 +37,15 @@ const input =
   'w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200'
 const fieldLabel = 'text-xs font-medium text-slate-500'
 
+// Nettó űrtartalom kiírása, pl. "0,5 l" / "500 ml" (magyar tizedesvessző).
+function fmtUrtartalom(c: {
+  netto_urtartalom?: number | null
+  urtartalom_egyseg?: 'ml' | 'l' | null
+}): string {
+  if (c.netto_urtartalom == null || !c.urtartalom_egyseg) return ''
+  return `${c.netto_urtartalom.toLocaleString('hu-HU')} ${c.urtartalom_egyseg}`
+}
+
 export function BevetelezesForm({
   suppliers,
   catalog,
@@ -67,13 +76,48 @@ export function BevetelezesForm({
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  // Melyik tétel Vonalkód/kereső mezőjéhez tartozó találati lista van nyitva.
+  const [openKey, setOpenKey] = useState<number | null>(null)
 
   function patch(key: number, p: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...p } : r)))
   }
   function onBarcode(key: number, code: string) {
-    const hit = byBarcode.get(code.trim())
+    // A wizard keresőjéhez igazítva: előbb pontos vonalkód (szkennelés), majd
+    // ha nincs, részleges vonalkód VAGY név alapján keresünk. Csak akkor
+    // töltjük ki a terméket, ha a találat egyértelmű (pontosan egy).
+    const raw = code.trim()
+    const q = raw.toLowerCase()
+    let hit = byBarcode.get(raw)
+    if (!hit && q) {
+      const matches = catalog.filter(
+        (c) =>
+          (c.vonalkod ?? '').toLowerCase().includes(q) ||
+          c.product_nev.toLowerCase().includes(q)
+      )
+      if (matches.length === 1) hit = matches[0]
+    }
     patch(key, { barcode: code, ...(hit ? { unit_id: hit.unit_id } : {}) })
+  }
+
+  // A wizard keresőjével azonos: név VAGY (részleges) vonalkód szerint szűr.
+  function suggestionsFor(text: string): UnitCatalogItem[] {
+    const q = text.trim().toLowerCase()
+    if (!q) return []
+    return catalog
+      .filter(
+        (c) =>
+          c.product_nev.toLowerCase().includes(q) ||
+          (c.vonalkod ?? '').toLowerCase().includes(q)
+      )
+      .slice(0, 8)
+  }
+
+  // Találatra kattintva: kiválasztjuk a kiszerelést. A mezőben a TERMÉK NEVE
+  // jelenik meg (nem a vonalkód) - a mentéshez csak az unit_id kell.
+  function pickUnit(key: number, c: UnitCatalogItem) {
+    patch(key, { unit_id: c.unit_id, barcode: c.product_nev })
+    setOpenKey(null)
   }
 
   async function onSubmit() {
@@ -146,7 +190,7 @@ export function BevetelezesForm({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Fejléc adatok */}
+      {/* Minden egy kártyában: fejléc adatok, elválasztó, majd a tételek. */}
       <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
         {/* Négy mező egy sorban (nagy nézet), 2x2 közepesen, egymás alatt mobilon. */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -229,10 +273,10 @@ export function BevetelezesForm({
           Ha a szállítólevél szám ehhez a beszállítóhoz már létezik, a tételek a
           meglévő szállítólevélhez fűződnek, nem nyílik új.
         </p>
-      </section>
 
-      {/* Tételek */}
-      <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+        <div className="my-6 border-t border-slate-200" />
+
+        {/* Tételek */}
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-slate-900">Tételek</h2>
           <button
@@ -244,7 +288,7 @@ export function BevetelezesForm({
           </button>
         </div>
 
-        <div className="mt-4 flex flex-col gap-4">
+        <div className="mt-4 flex flex-col gap-3">
           {rows.map((r, idx) => {
             const unit = r.unit_id ? byId.get(r.unit_id) : undefined
             const menny = parseInt(r.mennyiseg, 10) || 0
@@ -253,64 +297,133 @@ export function BevetelezesForm({
               unit &&
               (unit.kiszereles === 'karton' || unit.kiszereles === 'raklap') &&
               menny > 0
+            const suggestions = suggestionsFor(r.barcode)
 
             return (
               <div key={r.key} className="rounded-lg border border-slate-200 p-3 sm:p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-700">
-                    {idx + 1}. tétel
-                  </span>
-                  {rows.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRows((p) => p.filter((x) => x.key !== r.key))
-                      }
-                      className="text-sm font-medium text-red-600 hover:underline"
-                    >
-                      Törlés
-                    </button>
-                  )}
+                {/* Fejléc: sorszám + átváltás-visszajelző balra, selejt és Törlés jobbra. */}
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm font-semibold text-slate-700">
+                      {idx + 1}. tétel
+                    </span>
+                    {unit && menny > 0 && (
+                      <span
+                        className={`rounded-md px-2 py-1 text-xs ${
+                          isMulti
+                            ? 'bg-amber-50 text-amber-800'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {menny} × {KISZERELES_LABEL[unit.kiszereles as KiszerelesTipus]}
+                        {fmtUrtartalom(unit) && ` (${fmtUrtartalom(unit)})`}
+                        {' = '}
+                        <span className="font-semibold">{alap} db</span> (alapegység)
+                        {isMulti && ' - biztosan ennyi?'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={r.selejt}
+                        onChange={(e) => patch(r.key, { selejt: e.target.checked })}
+                        className="h-4 w-4"
+                      />
+                      Sérülten érkezett (selejt)
+                    </label>
+                    {r.selejt && (
+                      <select
+                        value={r.selejt_ok}
+                        onChange={(e) => patch(r.key, { selejt_ok: e.target.value })}
+                        className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                      >
+                        {SELEJT_OK_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRows((p) => p.filter((x) => x.key !== r.key))
+                        }
+                        className="text-sm font-medium text-red-600 hover:underline"
+                      >
+                        Törlés
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/*
-                  Nagy nézetben mind az öt mező EGY sorban (12 hasábos rács,
-                  3+3+2+2+2), tabletnél 3 hasáb, mobilon 2 - a min-w-0 kell,
-                  hogy a rács-elemek a tartalmuk alá tudjanak zsugorodni.
+                  Mind az öt mező EGY sorban (12 hasábos rács: 3+3+2+2+2 - a
+                  három részlet-mező egyforma széles), tabletnél 3 hasáb, mobilon
+                  2. A min-w-0 kell, hogy a rács-elemek a tartalmuk alá
+                  zsugorodhassanak.
                 */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-12">
-                  <label className="flex min-w-0 flex-col gap-1 lg:col-span-3">
-                    <span className={fieldLabel}>Vonalkód</span>
+                  <div className="relative col-span-2 flex min-w-0 flex-col gap-1 sm:col-span-3 lg:col-span-6">
+                    <span className={fieldLabel}>Termék keresése (név vagy vonalkód)</span>
                     <div className="flex min-w-0 gap-1">
                       <input
                         value={r.barcode}
-                        onChange={(e) => onBarcode(r.key, e.target.value)}
-                        inputMode="numeric"
-                        placeholder="beolvas / kézi"
+                        onChange={(e) => {
+                          onBarcode(r.key, e.target.value)
+                          setOpenKey(r.key)
+                        }}
+                        onFocus={() => setOpenKey(r.key)}
+                        // Késleltetés, hogy a listaelem kattintása még lefusson.
+                        onBlur={() => setTimeout(() => setOpenKey(null), 150)}
+                        placeholder="Keresés kézi hozzáadáshoz…"
                         className={input}
                       />
-                      <ScanButton onScan={(text) => onBarcode(r.key, text)} />
+                      <ScanButton
+                        onScan={(text) => {
+                          // Talált vonalkód → a NÉV kerül a mezőbe (pickUnit),
+                          // nem a beolvasott szám. Ha nincs találat, marad a kód.
+                          const hit = byBarcode.get(text.trim())
+                          if (hit) pickUnit(r.key, hit)
+                          else onBarcode(r.key, text)
+                        }}
+                      />
                     </div>
-                  </label>
-                  <label className="col-span-2 flex min-w-0 flex-col gap-1 lg:col-span-3">
-                    <span className={fieldLabel}>Termék / kiszerelés</span>
-                    <select
-                      value={r.unit_id}
-                      onChange={(e) => patch(r.key, { unit_id: e.target.value })}
-                      className={input}
-                    >
-                      <option value="">- válassz -</option>
-                      {catalog.map((c) => (
-                        <option key={c.unit_id} value={c.unit_id}>
-                          {c.product_nev} ·{' '}
-                          {KISZERELES_LABEL[c.kiszereles as KiszerelesTipus] ??
-                            c.kiszereles}
-                          {c.vonalkod ? ` (${c.vonalkod})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
+                    {/* Kézi kereső találatok - a wizard (mobilos bevételezés) mintája. */}
+                    {openKey === r.key && r.barcode.trim() && (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-1 flex max-h-64 flex-col gap-2 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-2 shadow-lg">
+                        {suggestions.map((c) => (
+                          <button
+                            key={c.unit_id}
+                            type="button"
+                            // onMouseDown a blur ELŐTT fut, így nem záródik be korábban.
+                            onMouseDown={(e) => {
+                              e.preventDefault()
+                              pickUnit(r.key, c)
+                            }}
+                            className="flex items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-left text-sm hover:bg-slate-100"
+                          >
+                            <span className="truncate font-medium text-slate-800">
+                              {c.product_nev}
+                            </span>
+                            <span className="shrink-0 text-xs text-slate-400">
+                              + {KISZERELES_LABEL[c.kiszereles as KiszerelesTipus] ??
+                                c.kiszereles}
+                              {fmtUrtartalom(c) && ` · ${fmtUrtartalom(c)}`}
+                            </span>
+                          </button>
+                        ))}
+                        {suggestions.length === 0 && (
+                          <p className="px-2 py-3 text-center text-sm text-slate-400">
+                            Nincs találat.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <label className="flex min-w-0 flex-col gap-1 lg:col-span-2">
                     <span className={fieldLabel}>
                       Mennyiség ({unit ? KISZERELES_LABEL[unit.kiszereles as KiszerelesTipus] : 'db'})
@@ -341,56 +454,6 @@ export function BevetelezesForm({
                       className={input}
                     />
                   </label>
-                </div>
-
-                {/*
-                  Az átváltás-visszajelző és a selejt-jelölő EGY sorban (eddig két
-                  külön sáv volt a mezők alatt): a banner balra, a selejt jobbra.
-                */}
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                  {/* Átváltás megerősítése (karton/raklap) */}
-                  {unit && menny > 0 ? (
-                    <div
-                      className={`rounded-md px-3 py-2 text-sm ${
-                        isMulti
-                          ? 'bg-amber-50 text-amber-800'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {menny} × {KISZERELES_LABEL[unit.kiszereles as KiszerelesTipus]}
-                      {' = '}
-                      <span className="font-semibold">{alap} db</span> (alapegység)
-                      {isMulti && ' - biztosan ennyi?'}
-                    </div>
-                  ) : (
-                    <span />
-                  )}
-
-                  {/* Selejt opció */}
-                  <div className="flex flex-wrap items-center gap-3">
-                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={r.selejt}
-                        onChange={(e) => patch(r.key, { selejt: e.target.checked })}
-                        className="h-4 w-4"
-                      />
-                      Sérülten érkezett (selejt)
-                    </label>
-                    {r.selejt && (
-                      <select
-                        value={r.selejt_ok}
-                        onChange={(e) => patch(r.key, { selejt_ok: e.target.value })}
-                        className="rounded-md border border-slate-300 px-2 py-1 text-sm"
-                      >
-                        {SELEJT_OK_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
                 </div>
               </div>
             )

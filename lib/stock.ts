@@ -69,4 +69,7 @@ export type UnitCatalogItem = {
   kiszereles: string
   vonalkod: string | null
   mennyiseg_alapegysegben: number
+  // Nettó űrtartalom + egység (opcionális: nem minden katalógus-építő tölti ki).
+  netto_urtartalom?: number | null
+  urtartalom_egyseg?: 'ml' | 'l' | null
 }

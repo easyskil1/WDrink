@@ -9,6 +9,8 @@ type UnitRow = {
   kiszereles: string
   vonalkod: string | null
   mennyiseg_alapegysegben: number
+  netto_urtartalom: number | null
+  urtartalom_egyseg: 'ml' | 'l' | null
   products: { id: string; nev: string } | null
 }
 
@@ -20,7 +22,7 @@ export default async function BevetelezesUjPage() {
     supabase
       .from('product_units')
       .select(
-        'id, kiszereles, vonalkod, mennyiseg_alapegysegben, products!inner(id, nev, aktiv)'
+        'id, kiszereles, vonalkod, mennyiseg_alapegysegben, netto_urtartalom, urtartalom_egyseg, products!inner(id, nev, aktiv)'
       )
       .eq('products.aktiv', true),
   ])
@@ -33,12 +35,15 @@ export default async function BevetelezesUjPage() {
       kiszereles: u.kiszereles,
       vonalkod: u.vonalkod,
       mennyiseg_alapegysegben: u.mennyiseg_alapegysegben,
+      netto_urtartalom: u.netto_urtartalom,
+      urtartalom_egyseg: u.urtartalom_egyseg,
     }))
     .sort((a, b) => a.product_nev.localeCompare(b.product_nev, 'hu'))
 
-  // max-w-7xl (mint a lista): a tétel-sor öt mezője csak így fér el egy sorban.
+  // max-w-5xl: a tétel öt mezője egy sorban elfér, de az oldal nem feszül
+  // akkorára szét, mint a korábbi max-w-7xl-nél.
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-5xl">
       {/* Fejléc: cím balra, Vissza jobbra - a helyek/cimkek oldal mintája. */}
       <div className="flex items-center justify-between gap-3">
         <div>
