@@ -347,6 +347,11 @@ export function BevetelezesWizard({
                 type="file"
                 accept="image/*"
                 capture="environment"
+                // A value nullázása kell, hogy ugyanaz a fájl eltávolítás után
+                // újra kiválasztva is kiváltsa az onChange-et.
+                onClick={(e) => {
+                  e.currentTarget.value = ''
+                }}
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 className="hidden"
               />

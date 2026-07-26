@@ -185,16 +185,43 @@ export function BevetelezesForm({
               className={input}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          {/*
+            Rejtett input stílusozott címkében (a wizard mintája): így nincs a
+            böngésző natív "Nincs fájl kiválasztva" szövege, ami a szűk hasábban
+            levágódott. A fájlnév truncate-tel fér el, a teljes név a title-ben.
+          */}
+          <div className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Fotó (opcionális)
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="min-w-0 text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700"
-            />
-          </label>
+            <div className="flex items-center gap-1.5">
+              <label className="min-w-0 flex-1 cursor-pointer rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  // A value nullázása kell, hogy ugyanaz a fájl eltávolítás után
+                  // újra kiválasztva is kiváltsa az onChange-et.
+                  onClick={(e) => {
+                    e.currentTarget.value = ''
+                  }}
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="hidden"
+                />
+                <span className="block truncate" title={file?.name}>
+                  {file ? file.name : 'Fotó választása'}
+                </span>
+              </label>
+              {file && (
+                <button
+                  type="button"
+                  aria-label="Fotó eltávolítása"
+                  onClick={() => setFile(null)}
+                  className="shrink-0 rounded-md px-2 py-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* A súgó a rács ALATT egy sorban - a mezőn belül megnyújtotta a sort. */}
