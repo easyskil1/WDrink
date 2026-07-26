@@ -25,25 +25,33 @@ export default async function AdminLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header
-          className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-4 pb-3 sm:px-6 print:hidden"
+          className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 pb-3 sm:px-6 print:hidden"
           style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
         >
-          <div className="flex items-center gap-3 md:hidden">
+          <div className="flex min-w-0 items-center gap-3 md:hidden">
             <MobileNav role={profile?.role ?? null} />
-            <span className="text-sm font-medium text-slate-700">
+            <span className="truncate text-sm font-medium text-slate-700">
               Drink World Győr
             </span>
           </div>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden max-w-[40vw] truncate text-sm text-slate-600 sm:inline">
+          <div className="ml-auto flex min-w-0 items-center gap-3">
+            {/*
+              `sm:block` (nem `sm:inline`): a truncate/min-w-0 inline elemre NEM
+              hat (max-width, overflow:hidden, text-overflow nem érvényes rá),
+              ezért a hosszú név eddig szélesítette a csoportot és kitolta a
+              Kilépés gombot a fejlécből. A korábbi max-w-[40vw] is hibás mérték
+              volt: a tartalmi sáv nem a teljes viewport (levonódik a sidebar).
+            */}
+            <span className="hidden min-w-0 truncate text-sm text-slate-600 sm:block">
               {displayName}
             </span>
             {profile?.role && (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                 {profile.role}
               </span>
             )}
-            <form action="/auth/signout" method="post">
+            {/* shrink-0: a Kilépés soha ne szoruljon össze és ne csússzon ki. */}
+            <form action="/auth/signout" method="post" className="shrink-0">
               <button
                 type="submit"
                 className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
