@@ -273,10 +273,15 @@ export function BevetelezesForm({
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <label className="flex flex-col gap-1">
+                {/*
+                  Nagy nézetben mind az öt mező EGY sorban (12 hasábos rács,
+                  3+3+2+2+2), tabletnél 3 hasáb, mobilon 2 - a min-w-0 kell,
+                  hogy a rács-elemek a tartalmuk alá tudjanak zsugorodni.
+                */}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-12">
+                  <label className="flex min-w-0 flex-col gap-1 lg:col-span-3">
                     <span className={fieldLabel}>Vonalkód</span>
-                    <div className="flex gap-1">
+                    <div className="flex min-w-0 gap-1">
                       <input
                         value={r.barcode}
                         onChange={(e) => onBarcode(r.key, e.target.value)}
@@ -287,7 +292,7 @@ export function BevetelezesForm({
                       <ScanButton onScan={(text) => onBarcode(r.key, text)} />
                     </div>
                   </label>
-                  <label className="col-span-2 flex flex-col gap-1 sm:col-span-2">
+                  <label className="col-span-2 flex min-w-0 flex-col gap-1 lg:col-span-3">
                     <span className={fieldLabel}>Termék / kiszerelés</span>
                     <select
                       value={r.unit_id}
@@ -306,7 +311,7 @@ export function BevetelezesForm({
                     </select>
                   </label>
 
-                  <label className="flex flex-col gap-1">
+                  <label className="flex min-w-0 flex-col gap-1 lg:col-span-2">
                     <span className={fieldLabel}>
                       Mennyiség ({unit ? KISZERELES_LABEL[unit.kiszereles as KiszerelesTipus] : 'db'})
                     </span>
@@ -317,7 +322,7 @@ export function BevetelezesForm({
                       className={input}
                     />
                   </label>
-                  <label className="flex flex-col gap-1">
+                  <label className="flex min-w-0 flex-col gap-1 lg:col-span-2">
                     <span className={fieldLabel}>LOT szám</span>
                     <input
                       value={r.lot_szam}
@@ -325,7 +330,7 @@ export function BevetelezesForm({
                       className={input}
                     />
                   </label>
-                  <label className="flex flex-col gap-1">
+                  <label className="flex min-w-0 flex-col gap-1 lg:col-span-2">
                     <span className={fieldLabel}>Lejárat</span>
                     <input
                       type="date"
@@ -338,46 +343,54 @@ export function BevetelezesForm({
                   </label>
                 </div>
 
-                {/* Átváltás megerősítése (karton/raklap) */}
-                {unit && menny > 0 && (
-                  <div
-                    className={`mt-3 rounded-md px-3 py-2 text-sm ${
-                      isMulti
-                        ? 'bg-amber-50 text-amber-800'
-                        : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {menny} × {KISZERELES_LABEL[unit.kiszereles as KiszerelesTipus]}
-                    {' = '}
-                    <span className="font-semibold">{alap} db</span> (alapegység)
-                    {isMulti && ' - biztosan ennyi?'}
-                  </div>
-                )}
-
-                {/* Selejt opció */}
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={r.selejt}
-                      onChange={(e) => patch(r.key, { selejt: e.target.checked })}
-                      className="h-4 w-4"
-                    />
-                    Sérülten érkezett (selejt)
-                  </label>
-                  {r.selejt && (
-                    <select
-                      value={r.selejt_ok}
-                      onChange={(e) => patch(r.key, { selejt_ok: e.target.value })}
-                      className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                {/*
+                  Az átváltás-visszajelző és a selejt-jelölő EGY sorban (eddig két
+                  külön sáv volt a mezők alatt): a banner balra, a selejt jobbra.
+                */}
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  {/* Átváltás megerősítése (karton/raklap) */}
+                  {unit && menny > 0 ? (
+                    <div
+                      className={`rounded-md px-3 py-2 text-sm ${
+                        isMulti
+                          ? 'bg-amber-50 text-amber-800'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}
                     >
-                      {SELEJT_OK_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
+                      {menny} × {KISZERELES_LABEL[unit.kiszereles as KiszerelesTipus]}
+                      {' = '}
+                      <span className="font-semibold">{alap} db</span> (alapegység)
+                      {isMulti && ' - biztosan ennyi?'}
+                    </div>
+                  ) : (
+                    <span />
                   )}
+
+                  {/* Selejt opció */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={r.selejt}
+                        onChange={(e) => patch(r.key, { selejt: e.target.checked })}
+                        className="h-4 w-4"
+                      />
+                      Sérülten érkezett (selejt)
+                    </label>
+                    {r.selejt && (
+                      <select
+                        value={r.selejt_ok}
+                        onChange={(e) => patch(r.key, { selejt_ok: e.target.value })}
+                        className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                      >
+                        {SELEJT_OK_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                 </div>
               </div>
             )

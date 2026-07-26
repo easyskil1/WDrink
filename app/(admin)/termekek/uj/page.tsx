@@ -8,13 +8,17 @@ export default async function NewProductPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <nav className="mb-4 text-sm text-slate-500">
-        <Link href="/termekek" className="hover:underline">
-          Termékek
-        </Link>{' '}
-        / Új termék
-      </nav>
-      <h1 className="text-2xl font-semibold text-slate-900">Új termék</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 text-2xl font-semibold text-slate-900">
+          Új termék
+        </h1>
+        <Link
+          href="/termekek"
+          className="shrink-0 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          Vissza
+        </Link>
+      </div>
       <div className="mt-6">
         <ProductForm
           action={createProduct}

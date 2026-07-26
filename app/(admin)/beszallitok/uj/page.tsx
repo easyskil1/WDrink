@@ -5,13 +5,17 @@ import { createSupplier } from '../actions'
 export default function NewSupplierPage() {
   return (
     <div className="mx-auto max-w-3xl">
-      <nav className="mb-4 text-sm text-slate-500">
-        <Link href="/beszallitok" className="hover:underline">
-          Beszállítók
-        </Link>{' '}
-        / Új
-      </nav>
-      <h1 className="text-2xl font-semibold text-slate-900">Új beszállító</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 text-2xl font-semibold text-slate-900">
+          Új beszállító
+        </h1>
+        <Link
+          href="/beszallitok"
+          className="shrink-0 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          Vissza
+        </Link>
+      </div>
       <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
         <SupplierForm action={createSupplier} submitLabel="Létrehozás" />
       </div>

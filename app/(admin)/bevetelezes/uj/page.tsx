@@ -36,8 +36,9 @@ export default async function BevetelezesUjPage() {
     }))
     .sort((a, b) => a.product_nev.localeCompare(b.product_nev, 'hu'))
 
+  // max-w-7xl (mint a lista): a tétel-sor öt mezője csak így fér el egy sorban.
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-7xl">
       {/* Fejléc: cím balra, Vissza jobbra - a helyek/cimkek oldal mintája. */}
       <div className="flex items-center justify-between gap-3">
         <div>
