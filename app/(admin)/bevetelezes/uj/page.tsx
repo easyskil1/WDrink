@@ -38,21 +38,24 @@ export default async function BevetelezesUjPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      {/* Látható visszaút - a halvány morzsasort könnyű nem észrevenni. */}
-      <Link
-        href="/bevetelezes"
-        className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-      >
-        ← Vissza a bevételezésekhez
-      </Link>
-
-      <h1 className="mt-4 text-2xl font-semibold text-slate-900">
-        Új bevételezés
-      </h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Áru fogadása szállítólevélre - a tételek pufferbe kerülnek, onnan lehet
-        betárolni.
-      </p>
+      {/* Fejléc: cím balra, Vissza jobbra - a helyek/cimkek oldal mintája. */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">
+            Új bevételezés
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Áru fogadása szállítólevélre - a tételek pufferbe kerülnek, onnan
+            lehet betárolni.
+          </p>
+        </div>
+        <Link
+          href="/bevetelezes"
+          className="shrink-0 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          Vissza
+        </Link>
+      </div>
 
       <div className="mt-6">
         <BevetelezesForm

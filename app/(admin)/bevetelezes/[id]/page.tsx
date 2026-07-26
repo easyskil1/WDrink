@@ -154,27 +154,28 @@ export default async function BevetelezesReszletPage({
 
   return (
     <div className="mx-auto max-w-5xl">
-      {/* Látható visszaút - a halvány morzsasort könnyű nem észrevenni. */}
-      <Link
-        href="/bevetelezes"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-      >
-        ← Vissza a bevételezésekhez
-      </Link>
-
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          {noteData.szallitolevel_szam ?? (
-            <span className="text-slate-400">(nincs szállítólevél szám)</span>
-          )}
-        </h1>
-        <p className="text-sm text-slate-500">
-          {tetelek.length} tétel · {osszDb} db készleten
-          {selejtDb > 0 && <> · {selejtDb} db selejt</>}
-        </p>
-        <p className="font-mono text-xs text-slate-400">
-          Belső azonosító: {noteData.sorszam}
-        </p>
+      {/* Fejléc: cím balra, Vissza jobbra - a helyek/cimkek oldal mintája. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h1 className="text-2xl font-semibold text-slate-900">
+            {noteData.szallitolevel_szam ?? (
+              <span className="text-slate-400">(nincs szállítólevél szám)</span>
+            )}
+          </h1>
+          <p className="text-sm text-slate-500">
+            {tetelek.length} tétel · {osszDb} db készleten
+            {selejtDb > 0 && <> · {selejtDb} db selejt</>}
+          </p>
+          <p className="font-mono text-xs text-slate-400">
+            Belső azonosító: {noteData.sorszam}
+          </p>
+        </div>
+        <Link
+          href="/bevetelezes"
+          className="shrink-0 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          Vissza
+        </Link>
       </div>
 
       {/* Fejléc szerkesztése - nem érinti a készletet. */}
