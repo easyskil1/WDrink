@@ -31,7 +31,8 @@ export const NAV: NavSection[] = [
   {
     title: 'Készletmozgás',
     items: [
-      { href: '/bevetelezes', label: 'Bevételezés' },
+      // Lista nézet (a felvitel /bevetelezes/uj-on van), ezért többes szám.
+      { href: '/bevetelezes', label: 'Bevételezések' },
       { href: '/betarolas', label: 'Betárolás' },
       { href: '/kigyujtes', label: 'Kigyűjtés' },
       { href: '/kiadas', label: 'Kiszállítás' },

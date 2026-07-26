@@ -14,6 +14,7 @@ export type MovementTipus =
   | 'kiadas'
   | 'atrarolas'
   | 'selejtezes'
+  | 'korrekcio'
 
 export const MOVEMENT_TIPUS_LABEL: Record<MovementTipus, string> = {
   bevetelezes: 'Bevételezés',
@@ -22,6 +23,7 @@ export const MOVEMENT_TIPUS_LABEL: Record<MovementTipus, string> = {
   kiadas: 'Kiszállítás',
   atrarolas: 'Átrárolás',
   selejtezes: 'Selejtezés',
+  korrekcio: 'Korrekció',
 }
 
 /** Badge-szín típusonként a tranzakciós nézethez (Tailwind osztályok). */
@@ -32,6 +34,8 @@ export const MOVEMENT_TIPUS_COLOR: Record<MovementTipus, string> = {
   kiadas: 'bg-blue-100 text-blue-700',
   atrarolas: 'bg-amber-100 text-amber-700',
   selejtezes: 'bg-red-100 text-red-700',
+  // A korrekció utólagos javítás, nem valódi árumozgás - semleges szín.
+  korrekcio: 'bg-slate-200 text-slate-700',
 }
 
 export const MOVEMENT_TIPUS_OPTIONS = (

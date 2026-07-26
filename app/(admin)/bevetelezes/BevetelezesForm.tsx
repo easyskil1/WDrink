@@ -58,6 +58,8 @@ export function BevetelezesForm({
     return m
   }, [catalog])
 
+  // A beszállító szállítólevél száma - a bevételezés elsődleges azonosítója.
+  const [szlSzam, setSzlSzam] = useState('')
   const [supplierId, setSupplierId] = useState('')
   const [datum, setDatum] = useState(defaultDatum)
   const [file, setFile] = useState<File | null>(null)
@@ -77,6 +79,9 @@ export function BevetelezesForm({
   async function onSubmit() {
     setError(null)
     setSuccess(null)
+
+    if (!szlSzam.trim()) return setError('Adj meg szállítólevél számot.')
+    if (!supplierId) return setError('Válassz beszállítót.')
 
     const items: BevItem[] = []
     for (const r of rows) {
@@ -114,7 +119,8 @@ export function BevetelezesForm({
       }
 
       const res = await createBevetelezes({
-        supplier_id: supplierId || null,
+        supplier_id: supplierId,
+        szallitolevel_szam: szlSzam,
         datum: datum || null,
         fenykep_url: fenykepUrl,
         items,
@@ -122,7 +128,13 @@ export function BevetelezesForm({
       setPending(false)
       if (res.error) return setError(res.error)
 
-      setSuccess(`Bevételezés mentve: ${res.sorszam}. A tételek pufferbe kerültek.`)
+      // A szállítólevél számot SZÁNDÉKOSAN nem nullázzuk: ugyanahhoz a papírhoz
+      // több körben is felvihetők tételek (a RPC hozzáfűz, nem nyit új levelet).
+      setSuccess(
+        res.uj_level === false
+          ? `A tételek a meglévő ${res.szallitolevel_szam} szállítólevélhez fűzve. A tételek pufferbe kerültek.`
+          : `Bevételezés mentve a ${res.szallitolevel_szam} szállítólevélre (belső azonosító: ${res.sorszam}). A tételek pufferbe kerültek.`
+      )
       setRows([emptyRow()])
       setFile(null)
       router.refresh()
@@ -137,6 +149,21 @@ export function BevetelezesForm({
       {/* Fejléc adatok */}
       <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Elsődleges azonosító: a beszállító papírján szereplő szám. */}
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+            Szállítólevél szám
+            <input
+              value={szlSzam}
+              onChange={(e) => setSzlSzam(e.target.value)}
+              placeholder="A beszállító papírján szereplő szám"
+              autoComplete="off"
+              className={`${input} py-3 text-base font-semibold`}
+            />
+            <span className="text-xs font-normal text-slate-400">
+              Ha ez a szám ehhez a beszállítóhoz már létezik, a tételek a meglévő
+              szállítólevélhez fűződnek, nem nyílik új.
+            </span>
+          </label>
           <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
             Beszállító
             <select
@@ -144,7 +171,7 @@ export function BevetelezesForm({
               onChange={(e) => setSupplierId(e.target.value)}
               className={input}
             >
-              <option value="">-</option>
+              <option value="">- Válassz beszállítót -</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nev}

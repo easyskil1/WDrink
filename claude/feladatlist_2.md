@@ -147,9 +147,14 @@
 
 - [x] **G1** 🟡 `termekek/actions.ts` – a kiszerelés-írás egyetlen `upsert`-re cserélve
   (meglévők frissülnek id alapján, újak beszúródnak). N kör helyett 1. ✅
-- [ ] **G2** 🟡 `bevetelezes/actions.ts` – plusz kör a `sorszam`-ért az RPC után.
-  **HALASZTVA**: a `create_bevetelezes` return típusát kellene uuid→jsonb-re váltani, ami éles
-  függvény DROP+CREATE-et igényel, a haszna viszont 1 kör egy ritka, kézi mentés-műveleten. Nem éri meg most.
+- [x] **G2** 🟡 `bevetelezes/actions.ts` – plusz kör a `sorszam`-ért az RPC után. ✅ (2026-07-26)
+  Korábban HALASZTVA volt (a return uuid→jsonb váltás éles függvény DROP+CREATE-et igényelt volna
+  1 kör nyereségért). A szállítólevél-alapú átalakítás során a `create_bevetelezes` amúgy is új
+  szignatúrát kapott (DROP+CREATE megtörtént), ezért a return **jsonb** lett
+  (`{note_id, sorszam, szallitolevel_szam, uj_level, tetelek}`) – a `delivery_notes` utólagos
+  lekérdezése törölve az `actions.ts`-ből.
+  Részletek: `claude/TERV_bevetelezes_szallitolevel.md`,
+  `supabase/migrations/20260726110200_bevetelezes_rpc_v2.sql`.
 - [x] **G3** 🟢 `termekek/actions.ts` – létezés-ellenőrzés exact count helyett
   `.select('id').limit(1).maybeSingle()` (index-backed, olcsóbb). ✅
 
